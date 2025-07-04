@@ -1,28 +1,12 @@
 const std = @import("std");
-const term = @import("common.zig").term;
+const Piece = @import("piece.zig").Piece;
+const PieceSet = @import("piece.zig").PieceSet;
 
 const stdout = std.io.getStdOut().writer();
 
 const Player = enum {
     PLAYER1,
     PLAYER2,
-};
-
-const Piece = enum {
-    NONE,
-    PAWN1, ROOK1, KNIG1, BISH1, QUEN1, KING1,
-    PAWN2, ROOK2, KNIG2, BISH2, QUEN2, KING2,
-};
-
-const PieceSet = struct {
-    mask: u64,
-
-    fn hasPos(
-        self: *const PieceSet,
-        pos: u64
-    ) bool {
-        return (((self.mask >> @intCast(pos)) & 1) != 0);
-    }
 };
 
 pub const Board = struct {
@@ -58,61 +42,40 @@ pub const Board = struct {
         };
     }
 
-    pub fn getPieceAtPos(
-        self: *const Board,
-        pos: u8
+    pub fn get(
+        self: *Board,
+        pos: u6,
     ) Piece {
-        if (self.p1_pawns.hasPos(pos)) return Piece.PAWN1;
-        if (self.p1_rooks.hasPos(pos)) return Piece.ROOK1;
-        if (self.p1_knigs.hasPos(pos)) return Piece.KNIG1;
-        if (self.p1_bishs.hasPos(pos)) return Piece.BISH1;
-        if (self.p1_quens.hasPos(pos)) return Piece.QUEN1;
-        if (self.p1_kings.hasPos(pos)) return Piece.KING1;
-        if (self.p2_pawns.hasPos(pos)) return Piece.PAWN2;
-        if (self.p2_rooks.hasPos(pos)) return Piece.ROOK2;
-        if (self.p2_knigs.hasPos(pos)) return Piece.KNIG2;
-        if (self.p2_bishs.hasPos(pos)) return Piece.BISH2;
-        if (self.p2_quens.hasPos(pos)) return Piece.QUEN2;
-        if (self.p2_kings.hasPos(pos)) return Piece.KING2;
+        if (self.p1_pawns.has(pos)) return Piece.PAWN1;
+        if (self.p1_rooks.has(pos)) return Piece.ROOK1;
+        if (self.p1_knigs.has(pos)) return Piece.KNIG1;
+        if (self.p1_bishs.has(pos)) return Piece.BISH1;
+        if (self.p1_quens.has(pos)) return Piece.QUEN1;
+        if (self.p1_kings.has(pos)) return Piece.KING1;
+        if (self.p2_pawns.has(pos)) return Piece.PAWN2;
+        if (self.p2_rooks.has(pos)) return Piece.ROOK2;
+        if (self.p2_knigs.has(pos)) return Piece.KNIG2;
+        if (self.p2_bishs.has(pos)) return Piece.BISH2;
+        if (self.p2_quens.has(pos)) return Piece.QUEN2;
+        if (self.p2_kings.has(pos)) return Piece.KING2;
         return Piece.NONE;
     }
 
-    pub fn displayClear(
-        self: *const Board
-    ) !void {
-        _ = self;
-        try stdout.writeAll(term.clear);
-    }
-
-    pub fn display(
-        self: *const Board
+    pub fn remove(
+        self: *Board,
+        pos: u6,
     ) void {
-        std.debug.print("\n    A B C D E F G H\n\n", .{});
-        for (0..8) |row| {
-            std.debug.print("{d}   ", .{8-row});
-            for (0..8) |col| {
-                const pos: u8 = @intCast((row * 8) + col);
-                const piece = self.getPieceAtPos(63 - pos);
-                switch (piece) {
-                    Piece.NONE  => std.debug.print("{s}- {s}", .{term.grey, term.reset}),
-                    Piece.PAWN1 => std.debug.print("{s}o {s}", .{term.blue, term.reset}),
-                    Piece.ROOK1 => std.debug.print("{s}+ {s}", .{term.blue, term.reset}),
-                    Piece.KNIG1 => std.debug.print("{s}L {s}", .{term.blue, term.reset}),
-                    Piece.BISH1 => std.debug.print("{s}x {s}", .{term.blue, term.reset}),
-                    Piece.QUEN1 => std.debug.print("{s}Q {s}", .{term.blue2, term.reset}),
-                    Piece.KING1 => std.debug.print("{s}K {s}", .{term.blue2, term.reset}),
-                    Piece.PAWN2 => std.debug.print("{s}o {s}", .{term.red, term.reset}),
-                    Piece.ROOK2 => std.debug.print("{s}+ {s}", .{term.red, term.reset}),
-                    Piece.KNIG2 => std.debug.print("{s}L {s}", .{term.red, term.reset}),
-                    Piece.BISH2 => std.debug.print("{s}x {s}", .{term.red, term.reset}),
-                    Piece.QUEN2 => std.debug.print("{s}Q {s}", .{term.red2, term.reset}),
-                    Piece.KING2 => std.debug.print("{s}K {s}", .{term.red2, term.reset}),
-                }
-            }
-            std.debug.print("  {d}", .{8-row});
-            std.debug.print("\n", .{});
-        }
-        std.debug.print("\n", .{});
-        std.debug.print("    A B C D E F G H\n\n", .{});
+        if (self.p1_pawns.has(pos)) return self.p1_pawns.remove(pos);
+        if (self.p1_rooks.has(pos)) return self.p1_rooks.remove(pos);
+        if (self.p1_knigs.has(pos)) return self.p1_knigs.remove(pos);
+        if (self.p1_bishs.has(pos)) return self.p1_bishs.remove(pos);
+        if (self.p1_quens.has(pos)) return self.p1_quens.remove(pos);
+        if (self.p1_kings.has(pos)) return self.p1_kings.remove(pos);
+        if (self.p2_pawns.has(pos)) return self.p2_pawns.remove(pos);
+        if (self.p2_rooks.has(pos)) return self.p2_rooks.remove(pos);
+        if (self.p2_knigs.has(pos)) return self.p2_knigs.remove(pos);
+        if (self.p2_bishs.has(pos)) return self.p2_bishs.remove(pos);
+        if (self.p2_quens.has(pos)) return self.p2_quens.remove(pos);
+        if (self.p2_kings.has(pos)) return self.p2_kings.remove(pos);
     }
 };
