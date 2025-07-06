@@ -146,8 +146,8 @@ pub const Board = struct {
         switch (piece) {
             Piece.PAWN1 => return self.get_legal_moves_pawn(pos, false),
             Piece.PAWN2 => return self.get_legal_moves_pawn(pos, true),
-            Piece.KNIG1 => return self.get_legal_moves_knight(pos),
-            Piece.KNIG2 => return self.get_legal_moves_knight(pos),
+            Piece.KNIG1 => return self.get_legal_moves_knight(pos, false),
+            Piece.KNIG2 => return self.get_legal_moves_knight(pos, true),
             else => unreachable,
         }
     }
@@ -167,9 +167,10 @@ pub const Board = struct {
     pub fn get_legal_moves_knight(
         self: *Board,
         pos: u6,
+        flip: bool,
     ) BoardMask {
         var moves = tables.knight_moves[pos];
-        var p1mask = self.get_p1_mask();
+        var p1mask = if (flip) self.get_p2_mask() else self.get_p1_mask() ;
         moves.remove_mask(&p1mask);
         return moves;
     }
