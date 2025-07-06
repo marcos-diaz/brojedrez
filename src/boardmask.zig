@@ -1,6 +1,12 @@
 pub const BoardMask = struct {
     mask: u64 = 0,
 
+    pub fn reset(
+        self: *BoardMask,
+    ) void {
+        self.mask = 0;
+    }
+
     pub fn has(
         self: *BoardMask,
         pos: u6,

@@ -23,34 +23,36 @@ pub fn clear() !void {
 
 pub fn print_board(
     board: *Board,
+    highlight: *BoardMask,
 ) void {
-    std.debug.print("\n    A B C D E F G H\n\n", .{});
+    std.debug.print("\n     A  B  C  D  E  F  G  H\n\n", .{});
     for (0..8) |row| {
         std.debug.print("{d}   ", .{8-row});
         for (0..8) |col| {
             const pos: u6 = @intCast((row * 8) + col);
             const piece = board.get(63 - pos);
+            const pre: u8 =  if (highlight.has(63-pos)) '[' else ' ';
+            const post: u8 = if (highlight.has(63-pos)) ']' else ' ';
             switch (piece) {
-                Piece.NONE  => std.debug.print("{s}- {s}", .{grey, reset}),
-                Piece.PAWN1 => std.debug.print("{s}o {s}", .{blue, reset}),
-                Piece.ROOK1 => std.debug.print("{s}+ {s}", .{blue, reset}),
-                Piece.KNIG1 => std.debug.print("{s}L {s}", .{blue, reset}),
-                Piece.BISH1 => std.debug.print("{s}x {s}", .{blue, reset}),
-                Piece.QUEN1 => std.debug.print("{s}Q {s}", .{blue2, reset}),
-                Piece.KING1 => std.debug.print("{s}K {s}", .{blue2, reset}),
-                Piece.PAWN2 => std.debug.print("{s}o {s}", .{red, reset}),
-                Piece.ROOK2 => std.debug.print("{s}+ {s}", .{red, reset}),
-                Piece.KNIG2 => std.debug.print("{s}L {s}", .{red, reset}),
-                Piece.BISH2 => std.debug.print("{s}x {s}", .{red, reset}),
-                Piece.QUEN2 => std.debug.print("{s}Q {s}", .{red2, reset}),
-                Piece.KING2 => std.debug.print("{s}K {s}", .{red2, reset}),
+                Piece.NONE  => std.debug.print("{c}{s}-{s}{c}", .{pre, grey, reset, post}),
+                Piece.PAWN1 => std.debug.print("{c}{s}o{s}{c}", .{pre, blue, reset, post}),
+                Piece.ROOK1 => std.debug.print("{c}{s}+{s}{c}", .{pre, blue, reset, post}),
+                Piece.KNIG1 => std.debug.print("{c}{s}L{s}{c}", .{pre, blue, reset, post}),
+                Piece.BISH1 => std.debug.print("{c}{s}x{s}{c}", .{pre, blue, reset, post}),
+                Piece.QUEN1 => std.debug.print("{c}{s}Q{s}{c}", .{pre, blue2, reset, post}),
+                Piece.KING1 => std.debug.print("{c}{s}K{s}{c}", .{pre, blue2, reset, post}),
+                Piece.PAWN2 => std.debug.print("{c}{s}o{s}{c}", .{pre, red, reset, post}),
+                Piece.ROOK2 => std.debug.print("{c}{s}+{s}{c}", .{pre, red, reset, post}),
+                Piece.KNIG2 => std.debug.print("{c}{s}L{s}{c}", .{pre, red, reset, post}),
+                Piece.BISH2 => std.debug.print("{c}{s}x{s}{c}", .{pre, red, reset, post}),
+                Piece.QUEN2 => std.debug.print("{c}{s}Q{s}{c}", .{pre, red2, reset, post}),
+                Piece.KING2 => std.debug.print("{c}{s}K{s}{c}", .{pre, red2, reset, post}),
             }
         }
         std.debug.print("  {d}", .{8-row});
         std.debug.print("\n", .{});
     }
-    std.debug.print("\n", .{});
-    std.debug.print("    A B C D E F G H\n\n", .{});
+    std.debug.print("\n     A  B  C  D  E  F  G  H\n\n", .{});
 }
 
 pub fn print_boardmask(
