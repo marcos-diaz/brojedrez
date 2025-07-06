@@ -31,4 +31,9 @@ pub const BoardMask = struct {
         self.mask = self.mask & ~other_mask.mask;
     }
 
+    pub fn flip(
+        self: *BoardMask,
+    ) void {
+        self.mask = @bitReverse(self.mask);  // TODO: Real flip instead of rotation.
+    }
 };

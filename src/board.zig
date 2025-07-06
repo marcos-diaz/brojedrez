@@ -1,5 +1,7 @@
 const std = @import("std");
 const BoardMask = @import("boardmask.zig").BoardMask;
+const tables = @import("tables.zig");
+const terminal = @import("terminal.zig");
 
 const Player = enum {
     PLAYER1,
@@ -122,33 +124,51 @@ pub const Board = struct {
         return BoardMask{.mask=mask};
     }
 
+    pub fn get_p2_mask(
+        self: *Board,
+    ) BoardMask {
+        const mask = (
+            self.p2_pawns.mask |
+            self.p2_rooks.mask |
+            self.p2_knigs.mask |
+            self.p2_bishs.mask |
+            self.p2_quens.mask |
+            self.p2_kings.mask
+        );
+        return BoardMask{.mask=mask};
+    }
+
     pub fn get_legal_moves(
         self: *Board,
         pos: u6,
     ) BoardMask {
         const piece = self.get(pos);
         switch (piece) {
-            Piece.KNIG1 => return self.get_legal_moves_p1_knig(pos),
+            Piece.PAWN1 => return self.get_legal_moves_pawn(pos, false),
+            Piece.PAWN2 => return self.get_legal_moves_pawn(pos, true),
+            Piece.KNIG1 => return self.get_legal_moves_knight(pos),
+            Piece.KNIG2 => return self.get_legal_moves_knight(pos),
             else => unreachable,
         }
     }
 
-    pub fn get_legal_moves_p1_knig(
+    pub fn get_legal_moves_pawn(
+        self: *Board,
+        pos: u6,
+        flip: bool,
+    ) BoardMask {
+        const move_table = if (flip) tables.pawn_moves_p2 else tables.pawn_moves_p1;
+        var moves = move_table[pos];
+        var own_mask = if (flip) self.get_p2_mask() else self.get_p1_mask();
+        moves.remove_mask(&own_mask);
+        return moves;
+    }
+
+    pub fn get_legal_moves_knight(
         self: *Board,
         pos: u6,
     ) BoardMask {
-        var moves = BoardMask{};
-        const row: u6 = pos / 8;
-        const col: u6 = pos % 8;
-        for (0..64) |ipos| {
-            const irow: u6 = @intCast(ipos / 8);
-            const icol: u6 = @intCast(ipos % 8);
-            const row_gap = if (row >= irow) (row-irow) else (irow-row);
-            const col_gap = if (col >= icol) (col-icol) else (icol-col);
-            if ((row_gap==2 and col_gap==1) or (row_gap==1 and col_gap==2)) {
-                moves.add(@intCast(ipos));
-            }
-        }
+        var moves = tables.knight_moves[pos];
         var p1mask = self.get_p1_mask();
         moves.remove_mask(&p1mask);
         return moves;
