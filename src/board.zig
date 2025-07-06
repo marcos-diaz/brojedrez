@@ -1,44 +1,47 @@
 const std = @import("std");
-const Piece = @import("piece.zig").Piece;
-const PieceSet = @import("piece.zig").PieceSet;
-
-const stdout = std.io.getStdOut().writer();
+const BoardMask = @import("boardmask.zig").BoardMask;
 
 const Player = enum {
     PLAYER1,
     PLAYER2,
 };
 
+pub const Piece = enum {
+    NONE,
+    PAWN1, ROOK1, KNIG1, BISH1, QUEN1, KING1,
+    PAWN2, ROOK2, KNIG2, BISH2, QUEN2, KING2,
+};
+
 pub const Board = struct {
     turn: Player,
-    p1_pawns: PieceSet,
-    p1_rooks: PieceSet,
-    p1_knigs: PieceSet,
-    p1_bishs: PieceSet,
-    p1_quens: PieceSet,
-    p1_kings: PieceSet,
-    p2_pawns: PieceSet,
-    p2_rooks: PieceSet,
-    p2_knigs: PieceSet,
-    p2_bishs: PieceSet,
-    p2_quens: PieceSet,
-    p2_kings: PieceSet,
+    p1_pawns: BoardMask,
+    p1_rooks: BoardMask,
+    p1_knigs: BoardMask,
+    p1_bishs: BoardMask,
+    p1_quens: BoardMask,
+    p1_kings: BoardMask,
+    p2_pawns: BoardMask,
+    p2_rooks: BoardMask,
+    p2_knigs: BoardMask,
+    p2_bishs: BoardMask,
+    p2_quens: BoardMask,
+    p2_kings: BoardMask,
 
     pub fn init() Board {
         return Board{
             .turn = Player.PLAYER1,
-            .p1_pawns = PieceSet{.mask=0b00000000_00000000_00000000_00000000_00000000_00000000_11111111_00000000},
-            .p1_rooks = PieceSet{.mask=0b00000000_00000000_00000000_00000000_00000000_00000000_00000000_10000001},
-            .p1_knigs = PieceSet{.mask=0b00000000_00000000_00000000_00000000_00000000_00000000_00000000_01000010},
-            .p1_bishs = PieceSet{.mask=0b00000000_00000000_00000000_00000000_00000000_00000000_00000000_00100100},
-            .p1_quens = PieceSet{.mask=0b00000000_00000000_00000000_00000000_00000000_00000000_00000000_00010000},
-            .p1_kings = PieceSet{.mask=0b00000000_00000000_00000000_00000000_00000000_00000000_00000000_00001000},
-            .p2_pawns = PieceSet{.mask=0b00000000_11111111_00000000_00000000_00000000_00000000_00000000_00000000},
-            .p2_rooks = PieceSet{.mask=0b10000001_00000000_00000000_00000000_00000000_00000000_00000000_00000000},
-            .p2_knigs = PieceSet{.mask=0b01000010_00000000_00000000_00000000_00000000_00000000_00000000_00000000},
-            .p2_bishs = PieceSet{.mask=0b00100100_00000000_00000000_00000000_00000000_00000000_00000000_00000000},
-            .p2_quens = PieceSet{.mask=0b00010000_00000000_00000000_00000000_00000000_00000000_00000000_00000000},
-            .p2_kings = PieceSet{.mask=0b00001000_00000000_00000000_00000000_00000000_00000000_00000000_00000000},
+            .p1_pawns = BoardMask{.mask=0b11111111 << 8},
+            .p1_rooks = BoardMask{.mask=0b10000001},
+            .p1_knigs = BoardMask{.mask=0b01000010},
+            .p1_bishs = BoardMask{.mask=0b00100100},
+            .p1_quens = BoardMask{.mask=0b00010000},
+            .p1_kings = BoardMask{.mask=0b00001000},
+            .p2_pawns = BoardMask{.mask=0b11111111 << 48},
+            .p2_rooks = BoardMask{.mask=0b10000001 << 56},
+            .p2_knigs = BoardMask{.mask=0b01000010 << 56},
+            .p2_bishs = BoardMask{.mask=0b00100100 << 56},
+            .p2_quens = BoardMask{.mask=0b00010000 << 56},
+            .p2_kings = BoardMask{.mask=0b00001000 << 56},
         };
     }
 
@@ -61,21 +64,93 @@ pub const Board = struct {
         return Piece.NONE;
     }
 
+    pub fn add(
+        self: *Board,
+        pos: u6,
+        piece: Piece,
+    ) void {
+        switch(piece) {
+            Piece.PAWN1 => self.p1_pawns.add(pos),
+            Piece.ROOK1 => self.p1_rooks.add(pos),
+            Piece.KNIG1 => self.p1_knigs.add(pos),
+            Piece.BISH1 => self.p1_bishs.add(pos),
+            Piece.QUEN1 => self.p1_quens.add(pos),
+            Piece.KING1 => self.p1_kings.add(pos),
+            Piece.PAWN2 => self.p2_pawns.add(pos),
+            Piece.ROOK2 => self.p2_rooks.add(pos),
+            Piece.KNIG2 => self.p2_knigs.add(pos),
+            Piece.BISH2 => self.p2_bishs.add(pos),
+            Piece.QUEN2 => self.p2_quens.add(pos),
+            Piece.KING2 => self.p2_kings.add(pos),
+            Piece.NONE => return,
+        }
+    }
+
     pub fn remove(
         self: *Board,
         pos: u6,
     ) void {
-        if (self.p1_pawns.has(pos)) return self.p1_pawns.remove(pos);
-        if (self.p1_rooks.has(pos)) return self.p1_rooks.remove(pos);
-        if (self.p1_knigs.has(pos)) return self.p1_knigs.remove(pos);
-        if (self.p1_bishs.has(pos)) return self.p1_bishs.remove(pos);
-        if (self.p1_quens.has(pos)) return self.p1_quens.remove(pos);
-        if (self.p1_kings.has(pos)) return self.p1_kings.remove(pos);
-        if (self.p2_pawns.has(pos)) return self.p2_pawns.remove(pos);
-        if (self.p2_rooks.has(pos)) return self.p2_rooks.remove(pos);
-        if (self.p2_knigs.has(pos)) return self.p2_knigs.remove(pos);
-        if (self.p2_bishs.has(pos)) return self.p2_bishs.remove(pos);
-        if (self.p2_quens.has(pos)) return self.p2_quens.remove(pos);
-        if (self.p2_kings.has(pos)) return self.p2_kings.remove(pos);
+        const piece = self.get(pos);
+        switch (piece) {
+            Piece.PAWN1 => self.p1_pawns.remove(pos),
+            Piece.ROOK1 => self.p1_rooks.remove(pos),
+            Piece.KNIG1 => self.p1_knigs.remove(pos),
+            Piece.BISH1 => self.p1_bishs.remove(pos),
+            Piece.QUEN1 => self.p1_quens.remove(pos),
+            Piece.KING1 => self.p1_kings.remove(pos),
+            Piece.PAWN2 => self.p2_pawns.remove(pos),
+            Piece.ROOK2 => self.p2_rooks.remove(pos),
+            Piece.KNIG2 => self.p2_knigs.remove(pos),
+            Piece.BISH2 => self.p2_bishs.remove(pos),
+            Piece.QUEN2 => self.p2_quens.remove(pos),
+            Piece.KING2 => self.p2_kings.remove(pos),
+            Piece.NONE => {}
+        }
+    }
+
+    pub fn get_p1_mask(
+        self: *Board,
+    ) BoardMask {
+        const mask = (
+            self.p1_pawns.mask |
+            self.p1_rooks.mask |
+            self.p1_knigs.mask |
+            self.p1_bishs.mask |
+            self.p1_quens.mask |
+            self.p1_kings.mask
+        );
+        return BoardMask{.mask=mask};
+    }
+
+    pub fn get_legal_moves(
+        self: *Board,
+        pos: u6,
+    ) BoardMask {
+        const piece = self.get(pos);
+        switch (piece) {
+            Piece.KNIG1 => return self.get_legal_moves_p1_knig(pos),
+            else => unreachable,
+        }
+    }
+
+    pub fn get_legal_moves_p1_knig(
+        self: *Board,
+        pos: u6,
+    ) BoardMask {
+        var moves = BoardMask{};
+        const row: u6 = pos / 8;
+        const col: u6 = pos % 8;
+        for (0..64) |ipos| {
+            const irow: u6 = @intCast(ipos / 8);
+            const icol: u6 = @intCast(ipos % 8);
+            const row_gap = if (row >= irow) (row-irow) else (irow-row);
+            const col_gap = if (col >= icol) (col-icol) else (icol-col);
+            if ((row_gap==2 and col_gap==1) or (row_gap==1 and col_gap==2)) {
+                moves.add(@intCast(ipos));
+            }
+        }
+        var p1mask = self.get_p1_mask();
+        moves.remove_mask(&p1mask);
+        return moves;
     }
 };

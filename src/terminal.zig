@@ -1,6 +1,7 @@
 const std = @import("std");
 const Board = @import("board.zig").Board;
-const Piece = @import("piece.zig").Piece;
+const Piece = @import("board.zig").Piece;
+const BoardMask = @import("boardmask.zig").BoardMask;
 
 const stdout = std.io.getStdOut().writer();
 
@@ -20,7 +21,7 @@ pub fn clear() !void {
     try stdout.writeAll(force_clear);
 }
 
-pub fn printBoard(
+pub fn print_board(
     board: *Board,
 ) void {
     std.debug.print("\n    A B C D E F G H\n\n", .{});
@@ -50,6 +51,18 @@ pub fn printBoard(
     }
     std.debug.print("\n", .{});
     std.debug.print("    A B C D E F G H\n\n", .{});
+}
+
+pub fn print_boardmask(
+    boardmask: *BoardMask,
+) void {
+    for (0..64) |_pos| {
+        const pos: u6 = @intCast(_pos);
+        if (pos % 8 == 0) std.debug.print("\n", .{});
+        const char: u8 = if (boardmask.has(63-pos)) 'X' else '-';
+        std.debug.print("{c} ", .{char});
+    }
+    std.debug.print("\n", .{});
 }
 
 
