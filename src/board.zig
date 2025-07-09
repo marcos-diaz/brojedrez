@@ -15,36 +15,42 @@ pub const Piece = enum {
 };
 
 pub const Board = struct {
-    turn: Player,
-    p1_pawns: BoardMask,
-    p1_rooks: BoardMask,
-    p1_knigs: BoardMask,
-    p1_bishs: BoardMask,
-    p1_quens: BoardMask,
-    p1_kings: BoardMask,
-    p2_pawns: BoardMask,
-    p2_rooks: BoardMask,
-    p2_knigs: BoardMask,
-    p2_bishs: BoardMask,
-    p2_quens: BoardMask,
-    p2_kings: BoardMask,
+    turn: Player = Player.PLAYER1,
+    p1_pawns: BoardMask = BoardMask{},
+    p1_rooks: BoardMask = BoardMask{},
+    p1_knigs: BoardMask = BoardMask{},
+    p1_bishs: BoardMask = BoardMask{},
+    p1_quens: BoardMask = BoardMask{},
+    p1_kings: BoardMask = BoardMask{},
+    p2_pawns: BoardMask = BoardMask{},
+    p2_rooks: BoardMask = BoardMask{},
+    p2_knigs: BoardMask = BoardMask{},
+    p2_bishs: BoardMask = BoardMask{},
+    p2_quens: BoardMask = BoardMask{},
+    p2_kings: BoardMask = BoardMask{},
 
     pub fn init() Board {
-        return Board{
-            .turn = Player.PLAYER1,
-            .p1_pawns = BoardMask{.mask=0b11111111 << 8},
-            .p1_rooks = BoardMask{.mask=0b10000001},
-            .p1_knigs = BoardMask{.mask=0b01000010},
-            .p1_bishs = BoardMask{.mask=0b00100100},
-            .p1_quens = BoardMask{.mask=0b00010000},
-            .p1_kings = BoardMask{.mask=0b00001000},
-            .p2_pawns = BoardMask{.mask=0b11111111 << 48},
-            .p2_rooks = BoardMask{.mask=0b10000001 << 56},
-            .p2_knigs = BoardMask{.mask=0b01000010 << 56},
-            .p2_bishs = BoardMask{.mask=0b00100100 << 56},
-            .p2_quens = BoardMask{.mask=0b00010000 << 56},
-            .p2_kings = BoardMask{.mask=0b00001000 << 56},
-        };
+        var board = Board{};
+        board.reset();
+        return board;
+    }
+
+    pub fn reset(
+        self: *Board,
+    ) void {
+        self.turn = Player.PLAYER1;
+        self.p1_pawns = BoardMask{.mask=0b11111111 << 8};
+        self.p1_rooks = BoardMask{.mask=0b10000001};
+        self.p1_knigs = BoardMask{.mask=0b01000010};
+        self.p1_bishs = BoardMask{.mask=0b00100100};
+        self.p1_quens = BoardMask{.mask=0b00010000};
+        self.p1_kings = BoardMask{.mask=0b00001000};
+        self.p2_pawns = BoardMask{.mask=0b11111111 << 48};
+        self.p2_rooks = BoardMask{.mask=0b10000001 << 56};
+        self.p2_knigs = BoardMask{.mask=0b01000010 << 56};
+        self.p2_bishs = BoardMask{.mask=0b00100100 << 56};
+        self.p2_quens = BoardMask{.mask=0b00010000 << 56};
+        self.p2_kings = BoardMask{.mask=0b00001000 << 56};
     }
 
     pub fn get(

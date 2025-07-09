@@ -56,6 +56,10 @@ pub fn main() !void {
         @memset(&buffer, 0);
         const input_len = try stdin.read(&buffer);
 
+        if (std.mem.eql(u8, buffer[0..5], "reset")) {
+            board.reset();
+        }
+
         if (input_len == 3) {
             const pos = pos_from_notation(buffer[0], buffer[1]);
             selected = pos;
