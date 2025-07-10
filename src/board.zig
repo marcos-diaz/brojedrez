@@ -156,6 +156,7 @@ pub const Board = struct {
             Piece.KING2 => return self.get_legal_moves_king(pos, true),
             Piece.KNIG1 => return self.get_legal_moves_knight(pos, false),
             Piece.KNIG2 => return self.get_legal_moves_knight(pos, true),
+            Piece.ROOK1 => return self.get_legal_moves_rook(pos, false),
             else => unreachable,
         }
     }
@@ -190,8 +191,25 @@ pub const Board = struct {
         flip: bool,
     ) BoardMask {
         var moves = tables.knight_moves[pos];
-        var p1mask = if (flip) self.get_p2_mask() else self.get_p1_mask() ;
-        moves.remove_mask(&p1mask);
+        var own_mask = if (flip) self.get_p2_mask() else self.get_p1_mask();
+        moves.remove_mask(&own_mask);
+        return moves;
+    }
+
+    pub fn get_legal_moves_rook(
+        self: *Board,
+        pos: u6,
+        flip: bool,
+    ) BoardMask {
+        var moves = BoardMask{};
+        var own_mask = if (flip) self.get_p2_mask() else self.get_p1_mask();
+        var opp_mask = if (flip) self.get_p1_mask() else self.get_p2_mask();
+        const row: u3 = @intCast(pos / 8);
+        const col: u3 = @intCast(pos % 8);
+        const own_row = own_mask.get_row(row);
+        const opp_row = opp_mask.get_row(row);
+        const row_moves = tables.slides[col][own_row][opp_row];
+        moves.set_row(row, row_moves);
         return moves;
     }
 };

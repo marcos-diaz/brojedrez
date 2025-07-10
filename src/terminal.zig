@@ -67,6 +67,12 @@ pub fn print_boardmask(
     std.debug.print("\n", .{});
 }
 
+pub fn print_bin(
+    number: u8,
+) void {
+    std.debug.print("{b:0>8}\n", .{number});
+}
+
 
 
 

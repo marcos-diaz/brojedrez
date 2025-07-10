@@ -56,8 +56,11 @@ pub fn main() !void {
         @memset(&buffer, 0);
         const input_len = try stdin.read(&buffer);
 
+        try terminal.clear();
+
         if (std.mem.eql(u8, buffer[0..5], "reset")) {
             board.reset();
+            has_selected = false;
         }
 
         if (input_len == 3) {
@@ -72,11 +75,11 @@ pub fn main() !void {
             const dest = pos_from_notation(buffer[2], buffer[3]);
             const piece = board.get(orig);
             board.remove(orig);
+            board.remove(dest);
             board.add(dest, piece);
             highlight.reset();
             has_selected = false;
         }
-        try terminal.clear();
         terminal.print_board(&board, &highlight);
     }
 }

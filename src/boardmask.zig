@@ -34,7 +34,24 @@ pub const BoardMask = struct {
         self: *BoardMask,
         other_mask: *BoardMask,
     ) void {
-        self.mask = self.mask & ~other_mask.mask;
+        self.mask &= ~other_mask.mask;
+    }
+
+    pub fn get_row(
+        self: *BoardMask,
+        row_index: u3,
+    ) u8 {
+        const index: u6 = @intCast(row_index);
+        return @intCast((self.mask >> (index * 8)) & 0b11111111);
+    }
+
+    pub fn set_row(
+        self: *BoardMask,
+        row_index: u3,
+        row_data: u8,
+    ) void {
+        const index: u6 = @intCast(row_index);
+        self.mask |= @as(u64, row_data) << (index * 8);
     }
 
     pub fn flip(
