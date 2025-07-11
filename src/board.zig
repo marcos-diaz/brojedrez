@@ -157,6 +157,7 @@ pub const Board = struct {
             Piece.KNIG1 => return self.get_legal_moves_knight(pos, false),
             Piece.KNIG2 => return self.get_legal_moves_knight(pos, true),
             Piece.ROOK1 => return self.get_legal_moves_rook(pos, false),
+            Piece.ROOK2 => return self.get_legal_moves_rook(pos, true),
             else => unreachable,
         }
     }
@@ -208,8 +209,16 @@ pub const Board = struct {
         const col: u3 = @intCast(pos % 8);
         const own_row = own_mask.get_row(row);
         const opp_row = opp_mask.get_row(row);
-        const row_moves = tables.slides[col][own_row][opp_row];
+        const own_col = own_mask.get_col(col);
+        const opp_col = opp_mask.get_col(col);
+        const all_row = own_row | opp_row;
+        const all_col = own_col | opp_col;
+        var row_moves = tables.slides[col][all_row];
+        var col_moves = tables.slides[row][all_col];
+        row_moves &= ~own_row;
+        col_moves &= ~own_col;
         moves.set_row(row, row_moves);
+        moves.set_col(col, col_moves);
         return moves;
     }
 };

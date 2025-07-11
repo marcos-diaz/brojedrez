@@ -120,38 +120,33 @@ fn set_bit(
 }
 
 fn get_moves_slide(
-) [8][256][256]u8 {
+) [8][256]u8 {
     @setEvalBranchQuota(10_000_000);
-    var moves: [8][256][256]u8 = undefined;
+    var moves: [8][256]u8 = undefined;
     for (0..8) |_index| {
         const index: u3 = @intCast(_index);
-        for (0..256) |_own| {
-            const own: u8 = @intCast(_own);
-            for (0..256) |_opp| {
-                const opp: u8 = @intCast(_opp);
-                var result: u8 = 0;
-                set_bit(&result, index);
-                for (index..8) |_rindex| {
-                    const rindex: u3 = @intCast(_rindex);
-                    if (index == rindex) continue;
-                    if (get_bit(own, rindex) == 1) break;
-                    if (get_bit(opp, rindex) == 1) {
-                        set_bit(&result, rindex);
-                        break;
-                    }
+        for (0..256) |_mask| {
+            const mask: u8 = @intCast(_mask);
+            var result: u8 = 0;
+            set_bit(&result, index);
+            for (index..8) |_rindex| {
+                const rindex: u3 = @intCast(_rindex);
+                if (index == rindex) continue;
+                if (get_bit(mask, rindex) == 1) {
                     set_bit(&result, rindex);
+                    break;
                 }
-                for (0..index) |_rindex| {
-                    const rindex: u3 = @intCast(index-1 - _rindex);
-                    if (get_bit(own, rindex) == 1) break;
-                    if (get_bit(opp, rindex) == 1) {
-                        set_bit(&result, rindex);
-                        break;
-                    }
-                    set_bit(&result, rindex);
-                }
-                moves[index][own][opp] = result;
+                set_bit(&result, rindex);
             }
+            for (0..index) |_rindex| {
+                const rindex: u3 = @intCast(index-1 - _rindex);
+                if (get_bit(mask, rindex) == 1) {
+                    set_bit(&result, rindex);
+                    break;
+                }
+                set_bit(&result, rindex);
+            }
+            moves[index][mask] = result;
         }
     }
     return moves;
