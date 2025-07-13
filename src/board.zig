@@ -158,6 +158,9 @@ pub const Board = struct {
             Piece.KNIG2 => return self.get_legal_moves_knight(pos, true),
             Piece.ROOK1 => return self.get_legal_moves_rook(pos, false),
             Piece.ROOK2 => return self.get_legal_moves_rook(pos, true),
+            Piece.BISH1 => return self.get_legal_moves_bishop(pos, false),
+            Piece.BISH2 => return self.get_legal_moves_bishop(pos, true),
+            Piece.NONE => return BoardMask{},
             else => unreachable,
         }
     }
@@ -219,6 +222,38 @@ pub const Board = struct {
         col_moves &= ~own_col;
         moves.set_row(row, row_moves);
         moves.set_col(col, col_moves);
+        return moves;
+    }
+
+    pub fn get_legal_moves_bishop(
+        self: *Board,
+        pos: u6,
+        flip: bool,
+    ) BoardMask {
+        const row: u3 = @intCast(pos / 8);
+        const col: u3 = @intCast(pos % 8);
+        var moves = BoardMask{};
+        var own_mask = if (flip) self.get_p2_mask() else self.get_p1_mask();
+        var opp_mask = if (flip) self.get_p1_mask() else self.get_p2_mask();
+        // Diagonal down.
+        const list_down = tables.diagonal_down_pos[pos];
+        const own_diagonal_down = own_mask.get_from_pos_list(list_down);
+        const opp_diagonal_down = opp_mask.get_from_pos_list(list_down);
+        const all_diagonal_down = own_diagonal_down | opp_diagonal_down;
+        const index_down = @min(row, col);
+        var diagonal_down_moves = tables.slides[index_down][all_diagonal_down];
+        diagonal_down_moves &= ~own_diagonal_down;
+        moves.set_from_pos_list(list_down, diagonal_down_moves);
+        // Diagonal up.
+        const list_up = tables.diagonal_up_pos[pos];
+        const own_diagonal_up = own_mask.get_from_pos_list(list_up);
+        const opp_diagonal_up = opp_mask.get_from_pos_list(list_up);
+        const all_diagonal_up = own_diagonal_up | opp_diagonal_up;
+        const index_up = @min(row, 7-col);
+        var diagonal_up_moves = tables.slides[index_up][all_diagonal_up];
+        diagonal_up_moves &= ~own_diagonal_up;
+        moves.set_from_pos_list(list_up, diagonal_up_moves);
+        // Return.
         return moves;
     }
 };

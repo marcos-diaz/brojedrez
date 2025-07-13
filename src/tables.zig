@@ -1,3 +1,4 @@
+const std = @import("std");
 const BoardMask = @import("boardmask.zig").BoardMask;
 
 // Comptime tables.
@@ -6,6 +7,8 @@ pub const pawn_moves_p2 = get_moves_pawn_all(true);
 pub const king_moves = get_moves_king_all();
 pub const knight_moves = get_moves_knight_all();
 pub const slides = get_moves_slide();
+pub const diagonal_down_pos = get_diagonal_down_positions();
+pub const diagonal_up_pos = get_diagonal_up_positions();
 
 fn get_moves_pawn_all(
     flip: bool,
@@ -121,7 +124,7 @@ fn set_bit(
 
 fn get_moves_slide(
 ) [8][256]u8 {
-    @setEvalBranchQuota(10_000_000);
+    @setEvalBranchQuota(100_000);
     var moves: [8][256]u8 = undefined;
     for (0..8) |_index| {
         const index: u3 = @intCast(_index);
@@ -150,4 +153,94 @@ fn get_moves_slide(
         }
     }
     return moves;
+}
+
+pub const PosList = struct {
+    len: u4 = 0,
+    data: [8]u6 = [_]u6{0} ** 8,
+
+    pub fn add(
+        self: *PosList,
+        pos: u6,
+    ) void {
+        if (self.len == 8) return;
+        self.data[self.len] = pos;
+        if (self.len < 8) self.len += 1;
+    }
+
+    pub fn sort(
+        self: *PosList,
+    ) void {
+        std.sort.block(u6, self.data[0..self.len], {}, sort_func);
+    }
+
+    pub fn sort_func(
+        _: void,
+        a: u6,
+        b: u6,
+    ) bool {
+        return a < b;
+    }
+
+    pub fn equal(
+        self: *PosList,
+        other: *PosList,
+    ) bool {
+        if (self.len != other.len) return false;
+        return std.mem.eql(u6, self.data[0..8], other.data[0..8]);
+    }
+};
+
+fn get_diagonal_down_positions(
+) [64]PosList {
+    @setEvalBranchQuota(10_000);
+    var lists: [64]PosList = undefined;
+    for (0..64) |_pos| {
+        const pos: u6 = @intCast(_pos);
+        const row: i8 = pos / 8;
+        const col: i8 = pos % 8;
+        var list = PosList{};
+        list.add(pos);
+        for (1..8) |_walk| {
+            const walk: i8 = @intCast(_walk);
+            if (row+walk <= 7 and col+walk <= 7) {
+                const new_pos_left = col+walk + ((row+walk) * 8);
+                list.add(@intCast(new_pos_left));
+            }
+            if (row-walk >= 0 and col-walk >= 0) {
+                const new_pos_right = col-walk + ((row-walk) * 8);
+                list.add(@intCast(new_pos_right));
+            }
+        }
+        list.sort();
+        lists[pos] = list;
+    }
+    return lists;
+}
+
+fn get_diagonal_up_positions(
+) [64]PosList {
+    @setEvalBranchQuota(10_000);
+    var lists: [64]PosList = undefined;
+    for (0..64) |_pos| {
+        const pos: u6 = @intCast(_pos);
+        const row: i8 = pos / 8;
+        const col: i8 = pos % 8;
+        var list = PosList{};
+        list.add(pos);
+        for (1..8) |_walk| {
+            const walk: i8 = @intCast(_walk);
+            if (row-walk >= 0 and col+walk <= 7) {
+                const new_pos_left = col+walk + ((row-walk) * 8);
+                list.add(@intCast(new_pos_left));
+            }
+            if (row+walk <= 7 and col-walk >= 0) {
+                const new_pos_right = col-walk + ((row+walk) * 8);
+                list.add(@intCast(new_pos_right));
+            }
+        }
+        list.sort();
+        lists[pos] = list;
+    }
+    return lists;
 }

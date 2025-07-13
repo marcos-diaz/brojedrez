@@ -3,6 +3,11 @@ const Board = @import("board.zig").Board;
 const BoardMask = @import("boardmask.zig").BoardMask;
 const terminal = @import("terminal.zig");
 
+pub const all_tests = @import("test/all_tests.zig");
+test {
+    std.testing.refAllDecls(all_tests);
+}
+
 const stdout = std.io.getStdOut().writer();
 const stdin = std.io.getStdIn().reader();
 
