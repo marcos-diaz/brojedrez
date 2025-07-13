@@ -7,8 +7,8 @@ pub const pawn_moves_p2 = get_moves_pawn_all(true);
 pub const king_moves = get_moves_king_all();
 pub const knight_moves = get_moves_knight_all();
 pub const slides = get_moves_slide();
-pub const diagonal_down_pos = get_diagonal_down_positions();
-pub const diagonal_up_pos = get_diagonal_up_positions();
+pub const line_sink = get_line_sink();
+pub const line_rise = get_line_rise();
 
 fn get_moves_pawn_all(
     flip: bool,
@@ -155,12 +155,12 @@ fn get_moves_slide(
     return moves;
 }
 
-pub const PosList = struct {
+pub const Line = struct {
     len: u4 = 0,
     data: [8]u6 = [_]u6{0} ** 8,
 
     pub fn add(
-        self: *PosList,
+        self: *Line,
         pos: u6,
     ) void {
         if (self.len == 8) return;
@@ -169,7 +169,7 @@ pub const PosList = struct {
     }
 
     pub fn sort(
-        self: *PosList,
+        self: *Line,
     ) void {
         std.sort.block(u6, self.data[0..self.len], {}, sort_func);
     }
@@ -183,64 +183,64 @@ pub const PosList = struct {
     }
 
     pub fn equal(
-        self: *PosList,
-        other: *PosList,
+        self: *Line,
+        other: *Line,
     ) bool {
         if (self.len != other.len) return false;
         return std.mem.eql(u6, self.data[0..8], other.data[0..8]);
     }
 };
 
-fn get_diagonal_down_positions(
-) [64]PosList {
+fn get_line_sink(
+) [64]Line {
     @setEvalBranchQuota(10_000);
-    var lists: [64]PosList = undefined;
+    var lines: [64]Line = undefined;
     for (0..64) |_pos| {
         const pos: u6 = @intCast(_pos);
         const row: i8 = pos / 8;
         const col: i8 = pos % 8;
-        var list = PosList{};
-        list.add(pos);
+        var line = Line{};
+        line.add(pos);
         for (1..8) |_walk| {
             const walk: i8 = @intCast(_walk);
             if (row+walk <= 7 and col+walk <= 7) {
                 const new_pos_left = col+walk + ((row+walk) * 8);
-                list.add(@intCast(new_pos_left));
+                line.add(@intCast(new_pos_left));
             }
             if (row-walk >= 0 and col-walk >= 0) {
                 const new_pos_right = col-walk + ((row-walk) * 8);
-                list.add(@intCast(new_pos_right));
+                line.add(@intCast(new_pos_right));
             }
         }
-        list.sort();
-        lists[pos] = list;
+        line.sort();
+        lines[pos] = line;
     }
-    return lists;
+    return lines;
 }
 
-fn get_diagonal_up_positions(
-) [64]PosList {
+fn get_line_rise(
+) [64]Line {
     @setEvalBranchQuota(10_000);
-    var lists: [64]PosList = undefined;
+    var lines: [64]Line = undefined;
     for (0..64) |_pos| {
         const pos: u6 = @intCast(_pos);
         const row: i8 = pos / 8;
         const col: i8 = pos % 8;
-        var list = PosList{};
-        list.add(pos);
+        var line = Line{};
+        line.add(pos);
         for (1..8) |_walk| {
             const walk: i8 = @intCast(_walk);
             if (row-walk >= 0 and col+walk <= 7) {
                 const new_pos_left = col+walk + ((row-walk) * 8);
-                list.add(@intCast(new_pos_left));
+                line.add(@intCast(new_pos_left));
             }
             if (row+walk <= 7 and col-walk >= 0) {
                 const new_pos_right = col-walk + ((row+walk) * 8);
-                list.add(@intCast(new_pos_right));
+                line.add(@intCast(new_pos_right));
             }
         }
-        list.sort();
-        lists[pos] = list;
+        line.sort();
+        lines[pos] = line;
     }
-    return lists;
+    return lines;
 }

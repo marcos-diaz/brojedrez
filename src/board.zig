@@ -14,6 +14,13 @@ pub const Piece = enum {
     PAWN2, ROOK2, KNIG2, BISH2, QUEN2, KING2,
 };
 
+pub const Pos = u6;
+
+pub const Move = struct {
+    orig: Pos,
+    dest: Pos,
+};
+
 pub const Board = struct {
     turn: Player = Player.PLAYER1,
     p1_pawns: BoardMask = BoardMask{},
@@ -160,8 +167,9 @@ pub const Board = struct {
             Piece.ROOK2 => return self.get_legal_moves_rook(pos, true),
             Piece.BISH1 => return self.get_legal_moves_bishop(pos, false),
             Piece.BISH2 => return self.get_legal_moves_bishop(pos, true),
+            Piece.QUEN1 => return self.get_legal_moves_queen(pos, false),
+            Piece.QUEN2 => return self.get_legal_moves_queen(pos, true),
             Piece.NONE => return BoardMask{},
-            else => unreachable,
         }
     }
 
@@ -236,24 +244,40 @@ pub const Board = struct {
         var own_mask = if (flip) self.get_p2_mask() else self.get_p1_mask();
         var opp_mask = if (flip) self.get_p1_mask() else self.get_p2_mask();
         // Diagonal down.
-        const list_down = tables.diagonal_down_pos[pos];
-        const own_diagonal_down = own_mask.get_from_pos_list(list_down);
-        const opp_diagonal_down = opp_mask.get_from_pos_list(list_down);
-        const all_diagonal_down = own_diagonal_down | opp_diagonal_down;
-        const index_down = @min(row, col);
-        var diagonal_down_moves = tables.slides[index_down][all_diagonal_down];
-        diagonal_down_moves &= ~own_diagonal_down;
-        moves.set_from_pos_list(list_down, diagonal_down_moves);
+        const line_sink = tables.line_sink[pos];
+        const own_sink = own_mask.get_line(line_sink);
+        const opp_sink = opp_mask.get_line(line_sink);
+        const all_sink = own_sink | opp_sink;
+        const index_sink = @min(row, col);
+        var moves_sink = tables.slides[index_sink][all_sink];
+        moves_sink &= ~own_sink;
+        moves.set_line(line_sink, moves_sink);
         // Diagonal up.
-        const list_up = tables.diagonal_up_pos[pos];
-        const own_diagonal_up = own_mask.get_from_pos_list(list_up);
-        const opp_diagonal_up = opp_mask.get_from_pos_list(list_up);
-        const all_diagonal_up = own_diagonal_up | opp_diagonal_up;
-        const index_up = @min(row, 7-col);
-        var diagonal_up_moves = tables.slides[index_up][all_diagonal_up];
-        diagonal_up_moves &= ~own_diagonal_up;
-        moves.set_from_pos_list(list_up, diagonal_up_moves);
+        const line_rise = tables.line_rise[pos];
+        const own_rise = own_mask.get_line(line_rise);
+        const opp_rise = opp_mask.get_line(line_rise);
+        const all_rise = own_rise | opp_rise;
+        const index_rise = @min(row, 7-col);
+        var moves_rise = tables.slides[index_rise][all_rise];
+        moves_rise &= ~own_rise;
+        moves.set_line(line_rise, moves_rise);
         // Return.
         return moves;
     }
+
+    pub fn get_legal_moves_queen(
+        self: *Board,
+        pos: u6,
+        flip: bool,
+    ) BoardMask {
+        const cardinal = self.get_legal_moves_rook(pos, flip);
+        const diagonal = self.get_legal_moves_bishop(pos, flip);
+        return BoardMask{.mask=cardinal.mask | diagonal.mask};
+    }
+
+    // pub fn get_legal_moves_all(
+
+    // ) {
+
+    // }
 };

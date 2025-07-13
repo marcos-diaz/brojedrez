@@ -35,9 +35,9 @@ pub const BoardMask = struct {
 
     pub fn remove_mask(
         self: *BoardMask,
-        other_mask: *BoardMask,
+        other: *BoardMask,
     ) void {
-        self.mask &= ~other_mask.mask;
+        self.mask &= ~other.mask;
     }
 
     pub fn flip(
@@ -93,9 +93,9 @@ pub const BoardMask = struct {
         }
     }
 
-    pub fn get_from_pos_list(
+    pub fn get_line(
         self: *BoardMask,
-        list: tables.PosList,
+        list: tables.Line,
     ) u8 {
         var result: u8 = 0;
         for (0..list.len) |_i| {
@@ -110,9 +110,9 @@ pub const BoardMask = struct {
         return result;
     }
 
-    pub fn set_from_pos_list(
+    pub fn set_line(
         self: *BoardMask,
-        list: tables.PosList,
+        list: tables.Line,
         data: u8,
     ) void {
         for (0..list.len) |_i| {
