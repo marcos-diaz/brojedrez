@@ -1,5 +1,6 @@
 const std = @import("std");
 const tables = @import("tables.zig");
+const Pos = @import("pos.zig").Pos;
 
 pub const BoardMask = struct {
     mask: u64 = 0,
@@ -12,25 +13,25 @@ pub const BoardMask = struct {
 
     pub fn has(
         self: *BoardMask,
-        pos: u6,
+        pos: Pos,
     ) bool {
-        return (((self.mask >> pos) & 1) != 0);
+        return (((self.mask >> pos.index) & 1) != 0);
     }
 
     pub fn remove(
         self: *BoardMask,
-        pos: u6,
+        pos: Pos,
     ) void {
         const target: u64 = 1;
-        self.mask &= ~(target << pos);
+        self.mask &= ~(target << pos.index);
     }
 
     pub fn add(
         self: *BoardMask,
-        pos: u6,
+        pos: Pos,
     ) void {
         const target: u64 = 1;
-        self.mask |= target << pos;
+        self.mask |= target << pos.index;
     }
 
     pub fn remove_mask(
@@ -65,13 +66,12 @@ pub const BoardMask = struct {
 
     pub fn get_col(
         self: *BoardMask,
-        col_index: u3,
+        col: u3,
     ) u8 {
-        const col: u6 = @intCast(col_index);
         var result: u8 = 0;
         for (0..8) |_i| {
             const i: u3 = @intCast(_i);
-            const pos: u6 = col + (8 * @as(u6, i));
+            const pos = Pos.from_row_col(i, col);
             const bit: u8 = @intFromBool(self.has(pos));
             result |= bit << i;
         }
@@ -100,7 +100,8 @@ pub const BoardMask = struct {
         var result: u8 = 0;
         for (0..list.len) |_i| {
             const i: u3 = @intCast(_i);
-            const bit: u8 = @intFromBool(self.has(list.data[i]));
+            const pos = Pos.from_int(list.data[i]);
+            const bit: u8 = @intFromBool(self.has(pos));
             result |= bit << i;
         }
         for (list.len..8) |_i| {

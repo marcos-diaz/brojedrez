@@ -1,7 +1,8 @@
 const std = @import("std");
+const BoardMask = @import("boardmask.zig").BoardMask;
 const Board = @import("board.zig").Board;
 const Piece = @import("board.zig").Piece;
-const BoardMask = @import("boardmask.zig").BoardMask;
+const Pos = @import("pos.zig").Pos;
 
 const stdout = std.io.getStdOut().writer();
 
@@ -29,10 +30,10 @@ pub fn print_board(
     for (0..8) |row| {
         std.debug.print("{d}   ", .{8-row});
         for (0..8) |col| {
-            const pos: u6 = @intCast((row * 8) + col);
-            const piece = board.get(63 - pos);
-            const pre: u8 =  if (highlight.has(63-pos)) '[' else ' ';
-            const post: u8 = if (highlight.has(63-pos)) ']' else ' ';
+            const pos = Pos.from_row_col(@intCast(row), @intCast(col)).reverse();
+            const piece = board.get(pos);
+            const pre: u8 =  if (highlight.has(pos)) '[' else ' ';
+            const post: u8 = if (highlight.has(pos)) ']' else ' ';
             switch (piece) {
                 Piece.NONE  => std.debug.print("{c}{s}-{s}{c}", .{pre, grey, reset, post}),
                 Piece.PAWN1 => std.debug.print("{c}{s}o{s}{c}", .{pre, blue, reset, post}),
@@ -59,9 +60,9 @@ pub fn print_boardmask(
     boardmask: *BoardMask,
 ) void {
     for (0..64) |_pos| {
-        const pos: u6 = @intCast(_pos);
-        if (pos % 8 == 0) std.debug.print("\n", .{});
-        const char: u8 = if (boardmask.has(63-pos)) 'X' else '-';
+        const pos = Pos.from_int(@intCast(_pos)).reverse();
+        if (pos.index % 8 == 0) std.debug.print("\n", .{});
+        const char: u8 = if (boardmask.has(pos)) 'X' else '-';
         std.debug.print("{c} ", .{char});
     }
     std.debug.print("\n", .{});

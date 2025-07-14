@@ -2,6 +2,7 @@ const std = @import("std");
 const BoardMask = @import("boardmask.zig").BoardMask;
 const tables = @import("tables.zig");
 const terminal = @import("terminal.zig");
+const Pos = @import("pos.zig").Pos;
 
 const Player = enum {
     PLAYER1,
@@ -13,8 +14,6 @@ pub const Piece = enum {
     PAWN1, ROOK1, KNIG1, BISH1, QUEN1, KING1,
     PAWN2, ROOK2, KNIG2, BISH2, QUEN2, KING2,
 };
-
-pub const Pos = u6;
 
 pub const Move = struct {
     orig: Pos,
@@ -62,7 +61,7 @@ pub const Board = struct {
 
     pub fn get(
         self: *Board,
-        pos: u6,
+        pos: Pos,
     ) Piece {
         if (self.p1_pawns.has(pos)) return Piece.PAWN1;
         if (self.p1_rooks.has(pos)) return Piece.ROOK1;
@@ -81,7 +80,7 @@ pub const Board = struct {
 
     pub fn add(
         self: *Board,
-        pos: u6,
+        pos: Pos,
         piece: Piece,
     ) void {
         switch(piece) {
@@ -103,7 +102,7 @@ pub const Board = struct {
 
     pub fn remove(
         self: *Board,
-        pos: u6,
+        pos: Pos,
     ) void {
         const piece = self.get(pos);
         switch (piece) {
@@ -153,7 +152,7 @@ pub const Board = struct {
 
     pub fn get_legal_moves(
         self: *Board,
-        pos: u6,
+        pos: Pos,
     ) BoardMask {
         const piece = self.get(pos);
         switch (piece) {
@@ -175,11 +174,11 @@ pub const Board = struct {
 
     pub fn get_legal_moves_pawn(
         self: *Board,
-        pos: u6,
+        pos: Pos,
         flip: bool,
     ) BoardMask {
         const move_table = if (flip) tables.pawn_moves_p2 else tables.pawn_moves_p1;
-        var moves = move_table[pos];
+        var moves = move_table[pos.index];
         var own_mask = if (flip) self.get_p2_mask() else self.get_p1_mask();
         moves.remove_mask(&own_mask);
         return moves;
@@ -187,10 +186,10 @@ pub const Board = struct {
 
     pub fn get_legal_moves_king(
         self: *Board,
-        pos: u6,
+        pos: Pos,
         flip: bool,
     ) BoardMask {
-        var moves = tables.king_moves[pos];
+        var moves = tables.king_moves[pos.index];
         terminal.print_boardmask(&moves);
         var own_mask = if (flip) self.get_p2_mask() else self.get_p1_mask();
         moves.remove_mask(&own_mask);
@@ -199,10 +198,10 @@ pub const Board = struct {
 
     pub fn get_legal_moves_knight(
         self: *Board,
-        pos: u6,
+        pos: Pos,
         flip: bool,
     ) BoardMask {
-        var moves = tables.knight_moves[pos];
+        var moves = tables.knight_moves[pos.index];
         var own_mask = if (flip) self.get_p2_mask() else self.get_p1_mask();
         moves.remove_mask(&own_mask);
         return moves;
@@ -210,14 +209,14 @@ pub const Board = struct {
 
     pub fn get_legal_moves_rook(
         self: *Board,
-        pos: u6,
+        pos: Pos,
         flip: bool,
     ) BoardMask {
         var moves = BoardMask{};
         var own_mask = if (flip) self.get_p2_mask() else self.get_p1_mask();
         var opp_mask = if (flip) self.get_p1_mask() else self.get_p2_mask();
-        const row: u3 = @intCast(pos / 8);
-        const col: u3 = @intCast(pos % 8);
+        const row: u3 = pos.row();
+        const col: u3 = pos.col();
         const own_row = own_mask.get_row(row);
         const opp_row = opp_mask.get_row(row);
         const own_col = own_mask.get_col(col);
@@ -235,16 +234,16 @@ pub const Board = struct {
 
     pub fn get_legal_moves_bishop(
         self: *Board,
-        pos: u6,
+        pos: Pos,
         flip: bool,
     ) BoardMask {
-        const row: u3 = @intCast(pos / 8);
-        const col: u3 = @intCast(pos % 8);
+        const row: u3 = pos.row();
+        const col: u3 = pos.col();
         var moves = BoardMask{};
         var own_mask = if (flip) self.get_p2_mask() else self.get_p1_mask();
         var opp_mask = if (flip) self.get_p1_mask() else self.get_p2_mask();
         // Diagonal down.
-        const line_sink = tables.line_sink[pos];
+        const line_sink = tables.line_sink[pos.index];
         const own_sink = own_mask.get_line(line_sink);
         const opp_sink = opp_mask.get_line(line_sink);
         const all_sink = own_sink | opp_sink;
@@ -253,7 +252,7 @@ pub const Board = struct {
         moves_sink &= ~own_sink;
         moves.set_line(line_sink, moves_sink);
         // Diagonal up.
-        const line_rise = tables.line_rise[pos];
+        const line_rise = tables.line_rise[pos.index];
         const own_rise = own_mask.get_line(line_rise);
         const opp_rise = opp_mask.get_line(line_rise);
         const all_rise = own_rise | opp_rise;
@@ -267,7 +266,7 @@ pub const Board = struct {
 
     pub fn get_legal_moves_queen(
         self: *Board,
-        pos: u6,
+        pos: Pos,
         flip: bool,
     ) BoardMask {
         const cardinal = self.get_legal_moves_rook(pos, flip);
