@@ -51,9 +51,9 @@ fn get_moves_pawn_at_pos(
     flip: bool,
 ) BoardMask {
     var moves = BoardMask{};
-    moves.add(pos.move(0, 1));
+    moves.add(pos.move(1, 0));
     if (pos.row() == 1) {
-        moves.add(pos.move(0, 2));
+        moves.add(pos.move(2, 0));
     }
     if (flip) moves.flip();
     return moves;

@@ -4,6 +4,7 @@ const Pos = @import("pos.zig").Pos;
 
 pub const BoardMask = struct {
     mask: u64 = 0,
+    next_index: u6 = 0,
 
     pub fn reset(
         self: *BoardMask,
@@ -45,6 +46,20 @@ pub const BoardMask = struct {
         self: *BoardMask,
     ) void {
         self.mask = @bitReverse(self.mask);  // TODO: Mirror instead of reverse.
+    }
+
+    pub fn count(
+        self: *BoardMask,
+    ) u6 {
+        return @truncate(@popCount(self.mask));
+    }
+
+    pub fn next(
+        self: *BoardMask,
+    ) Pos {
+        const index = @ctz(self.mask >> self.next_index);
+        self.next_index += @truncate(index+1);
+        return Pos.from_int(@truncate(self.next_index - 1));
     }
 
     pub fn get_row(

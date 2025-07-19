@@ -61,7 +61,7 @@ pub fn print_boardmask(
 ) void {
     for (0..64) |_pos| {
         const pos = Pos.from_int(@intCast(_pos)).reverse();
-        if (pos.index % 8 == 0) std.debug.print("\n", .{});
+        if ((63-pos.index) % 8 == 0) std.debug.print("\n", .{});
         const char: u8 = if (boardmask.has(pos)) 'X' else '-';
         std.debug.print("{c} ", .{char});
     }

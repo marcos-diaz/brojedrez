@@ -64,3 +64,27 @@ pub const Pos = struct{
         return string;
     }
 };
+
+pub const Move = struct {
+    orig: Pos,
+    dest: Pos,
+
+    pub fn notation(
+        self: *const Move,
+    ) [4]u8 {
+        return self.orig.notation() ++ self.dest.notation();
+    }
+};
+
+pub const MoveList = struct {
+    len: u8 = 0,
+    data: [64]Move = undefined,
+
+    pub fn add(
+        self: *MoveList,
+        move: Move,
+    ) void {
+        self.data[self.len] = move;
+        self.len += 1;
+    }
+};

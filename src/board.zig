@@ -3,6 +3,8 @@ const BoardMask = @import("boardmask.zig").BoardMask;
 const tables = @import("tables.zig");
 const terminal = @import("terminal.zig");
 const Pos = @import("pos.zig").Pos;
+const Move = @import("pos.zig").Move;
+const MoveList = @import("pos.zig").MoveList;
 
 const Player = enum {
     PLAYER1,
@@ -13,11 +15,6 @@ pub const Piece = enum {
     NONE,
     PAWN1, ROOK1, KNIG1, BISH1, QUEN1, KING1,
     PAWN2, ROOK2, KNIG2, BISH2, QUEN2, KING2,
-};
-
-pub const Move = struct {
-    orig: Pos,
-    dest: Pos,
 };
 
 pub const Board = struct {
@@ -150,7 +147,7 @@ pub const Board = struct {
         return BoardMask{.mask=mask};
     }
 
-    pub fn get_legal_moves(
+    pub fn get_legal_moves_for_pos(
         self: *Board,
         pos: Pos,
     ) BoardMask {
@@ -190,7 +187,6 @@ pub const Board = struct {
         flip: bool,
     ) BoardMask {
         var moves = tables.king_moves[pos.index];
-        terminal.print_boardmask(&moves);
         var own_mask = if (flip) self.get_p2_mask() else self.get_p1_mask();
         moves.remove_mask(&own_mask);
         return moves;
@@ -274,9 +270,23 @@ pub const Board = struct {
         return BoardMask{.mask=cardinal.mask | diagonal.mask};
     }
 
-    // pub fn get_legal_moves_all(
-
-    // ) {
-
-    // }
+    pub fn get_legal_moves(
+        self: *Board,
+    ) MoveList {
+        var movelist = MoveList{};
+        var mask = (
+            if (self.turn == Player.PLAYER1) self.get_p1_mask()
+            else self.get_p2_mask()
+        );
+        for(0..mask.count()) |_| {
+            const orig = mask.next();
+            var moves = self.get_legal_moves_for_pos(orig);
+            for(0..moves.count()) |_| {
+                const dest = moves.next();
+                const move = Move{.orig=orig, .dest=dest};
+                movelist.add(move);
+            }
+        }
+        return movelist;
+    }
 };
