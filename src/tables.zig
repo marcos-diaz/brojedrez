@@ -15,13 +15,13 @@ fn get_moves_pawn_all(
     flip: bool,
 ) [64]BoardMask {
     @setEvalBranchQuota(10_000);
-    var moves: [64]BoardMask = undefined;
+    var all_moves: [64]BoardMask = undefined;
     for (0..64) |_pos| {
-        var pos = Pos.from_int(_pos);
-        pos = if (flip) (pos.reverse()) else pos;
-        moves[pos.index] = get_moves_pawn_at_pos(pos, flip);
+        const pos = Pos.from_int(_pos);
+        const moves = get_moves_pawn_at_pos(pos, flip);
+        all_moves[pos.index] = moves;
     }
-    return moves;
+    return all_moves;
 }
 
 fn get_moves_king_all(
@@ -51,11 +51,12 @@ fn get_moves_pawn_at_pos(
     flip: bool,
 ) BoardMask {
     var moves = BoardMask{};
-    moves.add(pos.move(1, 0));
-    if (pos.row() == 1) {
-        moves.add(pos.move(2, 0));
+    const dir: i8 = if (flip) -1 else 1;
+    const initrow: u3 = if (flip) 6 else 1;
+    moves.add(pos.move(dir, 0));
+    if (pos.row() == initrow) {
+        moves.add(pos.move(dir*2, 0));
     }
-    if (flip) moves.flip();
     return moves;
 }
 

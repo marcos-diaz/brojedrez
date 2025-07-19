@@ -119,6 +119,23 @@ pub const Board = struct {
         }
     }
 
+    pub fn move(
+        self: *Board,
+        move_: Move,
+    ) bool {
+        const piece = self.get(move_.orig);
+        var mask = self.get_mask_all();
+        const is_capture = mask.has(move_.dest);
+        self.remove(move_.orig);
+        self.remove(move_.dest);
+        self.add(move_.dest, piece);
+        self.turn = (
+            if (self.turn == Player.PLAYER1) Player.PLAYER2
+            else Player.PLAYER1
+        );
+        return is_capture;
+    }
+
     pub fn get_p1_mask(
         self: *Board,
     ) BoardMask {
@@ -144,6 +161,13 @@ pub const Board = struct {
             self.p2_quens.mask |
             self.p2_kings.mask
         );
+        return BoardMask{.mask=mask};
+    }
+
+    pub fn get_mask_all(
+        self: *Board,
+    ) BoardMask {
+        const mask = self.get_p1_mask().mask | self.get_p2_mask().mask;
         return BoardMask{.mask=mask};
     }
 
@@ -176,8 +200,8 @@ pub const Board = struct {
     ) BoardMask {
         const move_table = if (flip) tables.pawn_moves_p2 else tables.pawn_moves_p1;
         var moves = move_table[pos.index];
-        var own_mask = if (flip) self.get_p2_mask() else self.get_p1_mask();
-        moves.remove_mask(&own_mask);
+        var mask = self.get_mask_all();
+        moves.remove_mask(&mask);
         return moves;
     }
 
@@ -283,8 +307,8 @@ pub const Board = struct {
             var moves = self.get_legal_moves_for_pos(orig);
             for(0..moves.count()) |_| {
                 const dest = moves.next();
-                const move = Move{.orig=orig, .dest=dest};
-                movelist.add(move);
+                const next_move = Move{.orig=orig, .dest=dest};
+                movelist.add(next_move);
             }
         }
         return movelist;

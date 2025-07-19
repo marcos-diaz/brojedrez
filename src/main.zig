@@ -2,6 +2,7 @@ const std = @import("std");
 const print = std.debug.print;
 const Board = @import("board.zig").Board;
 const Pos = @import("pos.zig").Pos;
+const Move = @import("pos.zig").Move;
 const BoardMask = @import("boardmask.zig").BoardMask;
 const terminal = @import("terminal.zig");
 
@@ -46,30 +47,37 @@ pub fn main() !void {
         if (std.mem.eql(u8, buffer[0..5], "reset")) {
             board.reset();
             has_selected = false;
+            highlight = BoardMask{.mask=0};
         }
 
         if (std.mem.eql(u8, buffer[0..5], "legal")) {
             const legal = board.get_legal_moves();
             for (0..legal.len) |i| {
                 const move = legal.data[i];
-                print("{s}\n", .{ move.notation() });
+                print("{s}, ", .{ move.notation() });
             }
+            print("\n", .{});
         }
 
-        if (input_len == 3) {
+        if (std.mem.eql(u8, buffer[0..4], "play")) {
+            // for (0..1000000) |_| {
+            const legal = board.get_legal_moves();
+            _ = board.move(legal.data[0]);
+            // }
+        }
+
+        else if (input_len == 3) {
             const pos = Pos.from_notation(buffer[0], buffer[1]);
             selected = pos;
             has_selected = true;
             highlight = board.get_legal_moves_for_pos(pos);
         }
 
-        if(input_len == 5) {
+        else if(input_len == 5) {
             const orig = Pos.from_notation(buffer[0], buffer[1]);
             const dest = Pos.from_notation(buffer[2], buffer[3]);
-            const piece = board.get(orig);
-            board.remove(orig);
-            board.remove(dest);
-            board.add(dest, piece);
+            const captured = board.move(Move{.orig=orig, .dest=dest});
+            if (captured) print("CAPTURED\n", .{});
             highlight.reset();
             has_selected = false;
         }

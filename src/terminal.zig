@@ -54,6 +54,7 @@ pub fn print_board(
         std.debug.print("\n", .{});
     }
     std.debug.print("\n     A  B  C  D  E  F  G  H\n\n", .{});
+    std.debug.print("Turn: {any}\n", .{board.turn});
 }
 
 pub fn print_boardmask(

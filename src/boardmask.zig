@@ -58,7 +58,8 @@ pub const BoardMask = struct {
         self: *BoardMask,
     ) Pos {
         const index = @ctz(self.mask >> self.next_index);
-        self.next_index += @truncate(index+1);
+        self.next_index +|= @intCast(index);
+        self.next_index +|= 1;
         return Pos.from_int(@truncate(self.next_index - 1));
     }
 
