@@ -114,8 +114,8 @@ pub fn loop() !void {
             highlight = BoardMask{.mask=0};
         }
 
-        if (std.mem.eql(u8, buffer[0..5], "legal")) {
-            const legal = board.get_legal_moves();
+        else if (std.mem.eql(u8, buffer[0..5], "legal")) {
+            const legal = board.get_legal_moves(false);
             for (0..legal.len) |i| {
                 const move = legal.data[i];
                 print("{s}, ", .{ move.notation() });

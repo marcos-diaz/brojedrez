@@ -38,6 +38,29 @@ pub const Board = struct {
         return board;
     }
 
+    pub fn fork(
+        self: *Board,
+        mov: Move,
+    ) Board {
+        var board = Board{
+            .turn=self.turn,
+            .p1_pawns=self.p1_pawns,
+            .p1_rooks=self.p1_rooks,
+            .p1_knigs=self.p1_knigs,
+            .p1_bishs=self.p1_bishs,
+            .p1_quens=self.p1_quens,
+            .p1_kings=self.p1_kings,
+            .p2_pawns=self.p2_pawns,
+            .p2_rooks=self.p2_rooks,
+            .p2_knigs=self.p2_knigs,
+            .p2_bishs=self.p2_bishs,
+            .p2_quens=self.p2_quens,
+            .p2_kings=self.p2_kings,
+        };
+        _ = board.move(mov);
+        return board;
+    }
+
     pub fn reset(
         self: *Board,
     ) void {
@@ -317,6 +340,7 @@ pub const Board = struct {
 
     pub fn get_legal_moves(
         self: *Board,
+        allow_check: bool,
     ) MoveList {
         var movelist = MoveList{};
         var mask = (
@@ -329,9 +353,41 @@ pub const Board = struct {
             for(0..moves.count()) |_| {
                 const dest = moves.next();
                 const next_move = Move{.orig=orig, .dest=dest};
-                movelist.add(next_move);
+                if (allow_check) {
+                    movelist.add(next_move);
+                } else {
+                    // Exclude moves that expose king.
+                    var forkk = self.fork(next_move);
+                    if (!forkk.can_capture_king()) {
+                        movelist.add(next_move);
+                    }
+                }
             }
         }
         return movelist;
+    }
+
+    pub fn can_capture_king(
+        self: *Board,
+    ) bool {
+        const moves = self.get_legal_moves(true);
+        const opp_king_pos = self.get_king_pos(if (self.turn==Player.PLAYER1) true else false);
+        for (0..moves.len) |i| {
+            const mov = moves.data[i];
+            // std.debug.print("  cck {s} {d} {d}\n", .{mov.notation(), mov.dest.index, opp_king_pos.index});
+            if (mov.dest.index == opp_king_pos.index) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    pub fn get_king_pos(
+        self: *Board,
+        p2: bool,
+    ) Pos {
+        const mask = if (p2) self.p2_kings else self.p1_kings;
+        const index: u6 = @truncate(@ctz(mask.mask));
+        return Pos{.index=index};
     }
 };
