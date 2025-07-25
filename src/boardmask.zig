@@ -35,11 +35,25 @@ pub const BoardMask = struct {
         self.mask |= target << pos.index;
     }
 
+    pub fn add_mask(
+        self: *BoardMask,
+        other: *BoardMask,
+    ) void {
+        self.mask |= other.mask;
+    }
+
     pub fn remove_mask(
         self: *BoardMask,
         other: *BoardMask,
     ) void {
         self.mask &= ~other.mask;
+    }
+
+    pub fn intersect_mask(
+        self: *BoardMask,
+        other: *BoardMask,
+    ) void {
+        self.mask &= other.mask;
     }
 
     pub fn flip(

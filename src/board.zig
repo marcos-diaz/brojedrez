@@ -133,6 +133,14 @@ pub const Board = struct {
             if (self.turn == Player.PLAYER1) Player.PLAYER2
             else Player.PLAYER1
         );
+        if (piece == Piece.PAWN1 and move_.dest.row() == 7) {
+            self.remove(move_.dest);
+            self.add(move_.dest, Piece.QUEN1);
+        }
+        if (piece == Piece.PAWN2 and move_.dest.row() == 0) {
+            self.remove(move_.dest);
+            self.add(move_.dest, Piece.QUEN2);
+        }
         return is_capture;
     }
 
@@ -198,10 +206,23 @@ pub const Board = struct {
         pos: Pos,
         flip: bool,
     ) BoardMask {
-        const move_table = if (flip) tables.pawn_moves_p2 else tables.pawn_moves_p1;
-        var moves = move_table[pos.index];
-        var mask = self.get_mask_all();
-        moves.remove_mask(&mask);
+        // Advance.
+        const advance_table = if (flip) tables.pawn_moves_p2 else tables.pawn_moves_p1;
+        var moves = advance_table[pos.index];
+        var all_mask = self.get_mask_all();
+        var all_mask_shadow = (
+            if (flip) BoardMask{.mask=((all_mask.mask << 16 ) >> 24)}
+            else BoardMask{.mask=((all_mask.mask >> 16 ) << 24)}
+        );
+        all_mask.add_mask(&all_mask_shadow);  // Prevent jump on double move.
+        moves.remove_mask(&all_mask);
+        // Capture.
+        const capture_table = if (flip) tables.pawn_captures_p2 else tables.pawn_captures_p1;
+        var captures = capture_table[pos.index];
+        var opp_mask = if (flip) self.get_p1_mask() else self.get_p2_mask();
+        captures.intersect_mask(&opp_mask);
+        moves.add_mask(&captures);
+        // Result.
         return moves;
     }
 

@@ -5,6 +5,8 @@ const Pos = @import("pos.zig").Pos;
 // Comptime tables.
 pub const pawn_moves_p1 = get_moves_pawn_all(false);
 pub const pawn_moves_p2 = get_moves_pawn_all(true);
+pub const pawn_captures_p1 = get_pawn_captures(false);
+pub const pawn_captures_p2 = get_pawn_captures(true);
 pub const king_moves = get_moves_king_all();
 pub const knight_moves = get_moves_knight_all();
 pub const slides = get_moves_slide();
@@ -19,6 +21,26 @@ fn get_moves_pawn_all(
     for (0..64) |_pos| {
         const pos = Pos.from_int(_pos);
         const moves = get_moves_pawn_at_pos(pos, flip);
+        all_moves[pos.index] = moves;
+    }
+    return all_moves;
+}
+
+fn get_pawn_captures(
+    flip: bool,
+) [64]BoardMask {
+    @setEvalBranchQuota(10_000);
+    var all_moves: [64]BoardMask = undefined;
+    for (0..64) |_pos| {
+        const pos = Pos.from_int(_pos);
+        var moves = BoardMask{};
+        const dir: i8 = if (flip) -1 else 1;
+        if (pos.col() > 0) {
+            moves.add(pos.move(dir, -1));
+        }
+        if (pos.col() < 7) {
+            moves.add(pos.move(dir, 1));
+        }
         all_moves[pos.index] = moves;
     }
     return all_moves;

@@ -123,13 +123,37 @@ pub fn loop() !void {
             print("\n", .{});
         }
 
-        if (std.mem.eql(u8, buffer[0..4], "play")) {
-            // for (0..1000000) |_| {
-            const legal = board.get_legal_moves();
-            _ = board.move(legal.data[0]);
-            // }
+        else if (std.mem.eql(u8, buffer[0..4], "king")) {
+            const can_capture_king = board.can_capture_king();
+            print("can_capture_king={}\n", .{can_capture_king});
         }
 
+        // Autoplay once.
+        else if (std.mem.eql(u8, buffer[0..4], "play")) {
+            const legal = board.get_legal_moves(false);
+            const move = legal.data[0];
+            _ = board.move(move);
+            highlight.reset();
+            highlight.add(move.orig);
+            highlight.add(move.dest);
+        }
+
+        // Autoplay.
+        else if (std.mem.eql(u8, buffer[0..8], "autoplay")) {
+            for (0..100) |_| {
+                try clear();
+                const legal = board.get_legal_moves(false);
+                const move = legal.data[100 % legal.len];
+                _ = board.move(move);
+                highlight.reset();
+                highlight.add(move.orig);
+                highlight.add(move.dest);
+                print_board(&board, &highlight);
+                std.time.sleep(100_000_000);
+            }
+        }
+
+        // Select.
         else if (input_len == 3) {
             const pos = Pos.from_notation(buffer[0], buffer[1]);
             selected = pos;
@@ -137,12 +161,15 @@ pub fn loop() !void {
             highlight = board.get_legal_moves_for_pos(pos);
         }
 
+        // Move.
         else if(input_len == 5) {
             const orig = Pos.from_notation(buffer[0], buffer[1]);
             const dest = Pos.from_notation(buffer[2], buffer[3]);
             const captured = board.move(Move{.orig=orig, .dest=dest});
             if (captured) print("CAPTURED\n", .{});
             highlight.reset();
+            highlight.add(orig);
+            highlight.add(dest);
             has_selected = false;
         }
         print_board(&board, &highlight);
