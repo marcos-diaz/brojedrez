@@ -26,11 +26,12 @@ pub const PieceValue = enum(i16) {
     BISHOP =   5,
     ROOK =     8,
     QUEEN =   15,
-    KING =  1000,
+    KING =   100,
 };
 
 pub const Board = struct {
     turn: Player = Player.PLAYER1,
+    last_move_was_capture: bool = false,
     p1_pawns: BoardMask = BoardMask{},
     p1_rooks: BoardMask = BoardMask{},
     p1_knigs: BoardMask = BoardMask{},
@@ -52,7 +53,7 @@ pub const Board = struct {
 
     pub fn fork_with_move(
         self: *Board,
-        mov: Move,
+        move: Move,
     ) Board {
         var board = Board{
             .turn=self.turn,
@@ -69,7 +70,7 @@ pub const Board = struct {
             .p2_quens=self.p2_quens,
             .p2_kings=self.p2_kings,
         };
-        _ = board.move(mov);
+        board.do_move(move);
         return board;
     }
 
@@ -154,29 +155,28 @@ pub const Board = struct {
         }
     }
 
-    pub fn move(
+    pub fn do_move(
         self: *Board,
-        move_: Move,
-    ) bool {
-        const piece = self.get(move_.orig);
+        move: Move,
+    ) void {
+        const piece = self.get(move.orig);
         var mask = self.get_mask_all();
-        const is_capture = mask.has(move_.dest);
-        self.remove(move_.orig);
-        self.remove(move_.dest);
-        self.add(move_.dest, piece);
+        self.last_move_was_capture = mask.has(move.dest);
+        self.remove(move.orig);
+        self.remove(move.dest);
+        self.add(move.dest, piece);
         self.turn = (
             if (self.turn == Player.PLAYER1) Player.PLAYER2
             else Player.PLAYER1
         );
-        if (piece == Piece.PAWN1 and move_.dest.row() == 7) {
-            self.remove(move_.dest);
-            self.add(move_.dest, Piece.QUEN1);
+        if (piece == Piece.PAWN1 and move.dest.row() == 7) {
+            self.remove(move.dest);
+            self.add(move.dest, Piece.QUEN1);
         }
-        if (piece == Piece.PAWN2 and move_.dest.row() == 0) {
-            self.remove(move_.dest);
-            self.add(move_.dest, Piece.QUEN2);
+        if (piece == Piece.PAWN2 and move.dest.row() == 0) {
+            self.remove(move.dest);
+            self.add(move.dest, Piece.QUEN2);
         }
-        return is_capture;
     }
 
     pub fn get_p1_mask(
@@ -416,28 +416,42 @@ pub const Board = struct {
             const pos = self.p2_pawns.next();
             score -= @intFromEnum(PieceValue.PAWN) * tables.pawn_score[pos.reverse().index];
         }
+        for (0..self.p1_knigs.count()) |_| {
+            const pos = self.p1_knigs.next();
+            score += @intFromEnum(PieceValue.KNIGHT) * tables.knight_score[pos.index];
+        }
+        for (0..self.p2_knigs.count()) |_| {
+            const pos = self.p2_knigs.next();
+            score -= @intFromEnum(PieceValue.KNIGHT) * tables.knight_score[pos.reverse().index];
+        }
 
-        score += @as(i16, self.p1_pawns.count()) * 10 *  @intFromEnum(PieceValue.PAWN);
-        score += @as(i16, self.p2_pawns.count()) * 10 * -@intFromEnum(PieceValue.PAWN);
-        score += @as(i16, self.p1_knigs.count()) * 10 *  @intFromEnum(PieceValue.KNIGHT);
-        score += @as(i16, self.p2_knigs.count()) * 10 * -@intFromEnum(PieceValue.KNIGHT);
-        score += @as(i16, self.p1_bishs.count()) * 10 *  @intFromEnum(PieceValue.BISHOP);
-        score += @as(i16, self.p2_bishs.count()) * 10 * -@intFromEnum(PieceValue.BISHOP);
-        score += @as(i16, self.p1_rooks.count()) * 10 *  @intFromEnum(PieceValue.ROOK);
-        score += @as(i16, self.p2_rooks.count()) * 10 * -@intFromEnum(PieceValue.ROOK);
-        score += @as(i16, self.p1_quens.count()) * 10 *  @intFromEnum(PieceValue.QUEEN);
-        score += @as(i16, self.p2_quens.count()) * 10 * -@intFromEnum(PieceValue.QUEEN);
-        score += @as(i16, self.p1_kings.count()) * 10 *  @intFromEnum(PieceValue.KING);
-        score += @as(i16, self.p2_kings.count()) * 10 * -@intFromEnum(PieceValue.KING);
+        score += @as(i16, self.p1_pawns.count()) * 100 *  @intFromEnum(PieceValue.PAWN);
+        score += @as(i16, self.p2_pawns.count()) * 100 * -@intFromEnum(PieceValue.PAWN);
+        score += @as(i16, self.p1_knigs.count()) * 100 *  @intFromEnum(PieceValue.KNIGHT);
+        score += @as(i16, self.p2_knigs.count()) * 100 * -@intFromEnum(PieceValue.KNIGHT);
+        score += @as(i16, self.p1_bishs.count()) * 100 *  @intFromEnum(PieceValue.BISHOP);
+        score += @as(i16, self.p2_bishs.count()) * 100 * -@intFromEnum(PieceValue.BISHOP);
+        score += @as(i16, self.p1_rooks.count()) * 100 *  @intFromEnum(PieceValue.ROOK);
+        score += @as(i16, self.p2_rooks.count()) * 100 * -@intFromEnum(PieceValue.ROOK);
+        score += @as(i16, self.p1_quens.count()) * 100 *  @intFromEnum(PieceValue.QUEEN);
+        score += @as(i16, self.p2_quens.count()) * 100 * -@intFromEnum(PieceValue.QUEEN);
+        score += @as(i16, self.p1_kings.count()) * 100 *  @intFromEnum(PieceValue.KING);
+        score += @as(i16, self.p2_kings.count()) * 100 * -@intFromEnum(PieceValue.KING);
         return score;
     }
 
     pub fn minmax(
         self: *Board,
         depth: u4,
+        depth_target: u4,
+        depth_max: u4,
         stats: *Stats,
     ) MoveAndScore {
-        if (depth == 0) {
+        var depth_extra: u4 = 0;
+        if (depth == depth_target and depth < depth_max and self.last_move_was_capture) {
+            depth_extra += 1;
+        }
+        if (depth == depth_target + depth_extra) {
             const score = self.get_score();
             stats.*[depth] += 1;
             // terminal.indent(4-depth);
@@ -453,7 +467,7 @@ pub const Board = struct {
                 // terminal.indent(4-depth);
                 // std.debug.print("{s} ", .{mov.notation()});
                 // std.time.sleep(1_000_000);
-                const candidate = fork.minmax(depth-1, stats);
+                const candidate = fork.minmax(depth+1, depth_target+depth_extra, depth_max, stats);
                 if (
                     (!best.score_defined) or
                     (self.turn == Player.PLAYER1 and candidate.score > best.score) or
