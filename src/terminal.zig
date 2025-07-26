@@ -2,6 +2,7 @@ const std = @import("std");
 const BoardMask = @import("boardmask.zig").BoardMask;
 const Board = @import("board.zig").Board;
 const Piece = @import("board.zig").Piece;
+const Player = @import("board.zig").Player;
 const Stats = @import("board.zig").Stats;
 const Pos = @import("pos.zig").Pos;
 const Move = @import("pos.zig").Move;
@@ -30,35 +31,36 @@ pub fn print_board(
     board: *Board,
     highlight: *BoardMask,
 ) void {
-    std.debug.print("\n     A  B  C  D  E  F  G  H\n\n", .{});
+    print("\n     A  B  C  D  E  F  G  H\n\n", .{});
     for (0..8) |row| {
-        std.debug.print("{d}   ", .{8-row});
+        print("{d}   ", .{8-row});
         for (0..8) |col| {
             const pos = Pos.from_row_col(@intCast(row), @intCast(col)).reverse();
             const piece = board.get(pos);
             const pre: u8 =  if (highlight.has(pos)) '[' else ' ';
             const post: u8 = if (highlight.has(pos)) ']' else ' ';
             switch (piece) {
-                Piece.NONE  => std.debug.print("{c}{s}-{s}{c}", .{pre, grey, reset, post}),
-                Piece.PAWN1 => std.debug.print("{c}{s}o{s}{c}", .{pre, blue, reset, post}),
-                Piece.ROOK1 => std.debug.print("{c}{s}+{s}{c}", .{pre, blue, reset, post}),
-                Piece.KNIG1 => std.debug.print("{c}{s}L{s}{c}", .{pre, blue, reset, post}),
-                Piece.BISH1 => std.debug.print("{c}{s}x{s}{c}", .{pre, blue, reset, post}),
-                Piece.QUEN1 => std.debug.print("{c}{s}Q{s}{c}", .{pre, blue2, reset, post}),
-                Piece.KING1 => std.debug.print("{c}{s}K{s}{c}", .{pre, blue2, reset, post}),
-                Piece.PAWN2 => std.debug.print("{c}{s}o{s}{c}", .{pre, red, reset, post}),
-                Piece.ROOK2 => std.debug.print("{c}{s}+{s}{c}", .{pre, red, reset, post}),
-                Piece.KNIG2 => std.debug.print("{c}{s}L{s}{c}", .{pre, red, reset, post}),
-                Piece.BISH2 => std.debug.print("{c}{s}x{s}{c}", .{pre, red, reset, post}),
-                Piece.QUEN2 => std.debug.print("{c}{s}Q{s}{c}", .{pre, red2, reset, post}),
-                Piece.KING2 => std.debug.print("{c}{s}K{s}{c}", .{pre, red2, reset, post}),
+                Piece.NONE  => print("{c}{s}-{s}{c}", .{pre, grey, reset, post}),
+                Piece.PAWN1 => print("{c}{s}o{s}{c}", .{pre, blue, reset, post}),
+                Piece.ROOK1 => print("{c}{s}+{s}{c}", .{pre, blue, reset, post}),
+                Piece.KNIG1 => print("{c}{s}L{s}{c}", .{pre, blue, reset, post}),
+                Piece.BISH1 => print("{c}{s}x{s}{c}", .{pre, blue, reset, post}),
+                Piece.QUEN1 => print("{c}{s}Q{s}{c}", .{pre, blue2, reset, post}),
+                Piece.KING1 => print("{c}{s}K{s}{c}", .{pre, blue2, reset, post}),
+                Piece.PAWN2 => print("{c}{s}o{s}{c}", .{pre, red, reset, post}),
+                Piece.ROOK2 => print("{c}{s}+{s}{c}", .{pre, red, reset, post}),
+                Piece.KNIG2 => print("{c}{s}L{s}{c}", .{pre, red, reset, post}),
+                Piece.BISH2 => print("{c}{s}x{s}{c}", .{pre, red, reset, post}),
+                Piece.QUEN2 => print("{c}{s}Q{s}{c}", .{pre, red2, reset, post}),
+                Piece.KING2 => print("{c}{s}K{s}{c}", .{pre, red2, reset, post}),
             }
         }
-        std.debug.print("  {d}", .{8-row});
-        std.debug.print("\n", .{});
+        print("  {d}", .{8-row});
+        if (8-row > 4 and board.turn == Player.PLAYER2) print("  █", .{});
+        if (8-row <= 4 and board.turn == Player.PLAYER1) print("  █", .{});
+        print("\n", .{});
     }
-    std.debug.print("\n     A  B  C  D  E  F  G  H\n\n", .{});
-    std.debug.print("Turn: {any}\n", .{board.turn});
+    print("\n     A  B  C  D  E  F  G  H\n\n", .{});
 }
 
 pub fn print_boardmask(
@@ -66,17 +68,17 @@ pub fn print_boardmask(
 ) void {
     for (0..64) |_pos| {
         const pos = Pos.from_int(@intCast(_pos)).reverse();
-        if ((63-pos.index) % 8 == 0) std.debug.print("\n", .{});
+        if ((63-pos.index) % 8 == 0) print("\n", .{});
         const char: u8 = if (boardmask.has(pos)) 'X' else '-';
-        std.debug.print("{c} ", .{char});
+        print("{c} ", .{char});
     }
-    std.debug.print("\n", .{});
+    print("\n", .{});
 }
 
 pub fn print_bin(
     number: u8,
 ) void {
-    std.debug.print("{b:0>8}\n", .{number});
+    print("{b:0>8}\n", .{number});
 }
 
 pub fn indent(
@@ -126,7 +128,10 @@ pub fn loop() !void {
         }
 
         // Autoplay once.
-        else if (std.mem.eql(u8, buffer[0..1], "p")) {
+        else if (
+            (input_len == 5 and (std.mem.eql(u8, buffer[0..4], "play"))) or
+            (input_len == 2 and buffer[0] == 'p')
+        ) {
             var stats: Stats = .{0} ** 16;
             const minmax = board.minmax(4, &stats);
             const move = minmax.move orelse unreachable;
@@ -137,6 +142,7 @@ pub fn loop() !void {
             highlight.add(move.dest);
             try clear();
             print_board(&board, &highlight);
+            print("{s}>{s} play\n", .{green, reset});
             print("evaluated d=1 {d}\n", .{stats[3]});
             print("evaluated d=2 {d}\n", .{stats[2]});
             print("evaluated d=3 {d}\n", .{stats[1]});
@@ -144,7 +150,7 @@ pub fn loop() !void {
             print("minmax {s} {d}\n", .{move.notation(), score});
         }
 
-        // Autoplay.
+        // Autoplay loop.
         else if (std.mem.eql(u8, buffer[0..8], "autoplay")) {
             for (0..100) |_| {
                 try clear();
@@ -173,7 +179,7 @@ pub fn loop() !void {
             for(0..64) |_pos| {
                 const hpos = Pos.from_int(@intCast(63 - _pos));
                 if (highlight.has(hpos)) {
-                    std.debug.print("{s}{s}, ", .{
+                    print("{s}{s}, ", .{
                         selected.notation(),
                         hpos.notation(),
                     });
@@ -195,6 +201,10 @@ pub fn loop() !void {
             print_board(&board, &highlight);
             print("{s}>{s} {s}{s}\n", .{green, reset, orig.notation(), dest.notation()});
             if (captured) print("CAPTURED\n", .{});
+        }
+
+        else {
+            print("command not found\n", .{});
         }
     }
 }

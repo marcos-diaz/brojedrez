@@ -9,7 +9,7 @@ const MoveAndScore = @import("pos.zig").MoveAndScore;
 
 pub const Stats = [16]u32;
 
-const Player = enum {
+pub const Player = enum {
     PLAYER1,
     PLAYER2,
 };
