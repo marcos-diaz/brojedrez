@@ -445,37 +445,64 @@ pub const Board = struct {
         depth: u4,
         depth_target: u4,
         depth_max: u4,
+        best_min: i16,
+        best_max: i16,
         stats: *Stats,
     ) MoveAndScore {
+        // Extend search.
         var depth_extra: u4 = 0;
         if (depth == depth_target and depth < depth_max and self.last_move_was_capture) {
             depth_extra += 1;
         }
+        // If it is a leaf then score.
         if (depth == depth_target + depth_extra) {
             const score = self.get_score();
             stats.*[depth] += 1;
             // terminal.indent(4-depth);
             // std.debug.print("{d}", .{score});
             return MoveAndScore{.move=null, .score=score};
+        // Explore branches.
         } else {
             var best: MoveAndScore = MoveAndScore{.move=null, .score=0};
+            var new_best_min = best_min;
+            var new_best_max = best_max;
             const legal = self.get_legal_moves(false);
             for (0..legal.len) |i| {
-                const mov = legal.data[i];
-                var fork = self.fork_with_move(mov);
+                const move = legal.data[i];
+                // Prune.
+                if (best_min <= best_max) {
+                    best.score = best_min+1;  // Never gets picked.
+                    best.score_defined = true;
+                    break;
+                }
+                // Go deeper.
+                var fork = self.fork_with_move(move);
                 // std.debug.print("\n", .{});
                 // terminal.indent(4-depth);
                 // std.debug.print("{s} ", .{mov.notation()});
                 // std.time.sleep(1_000_000);
-                const candidate = fork.minmax(depth+1, depth_target+depth_extra, depth_max, stats);
+                const candidate = fork.minmax(
+                    depth+1,
+                    depth_target+depth_extra,
+                    depth_max,
+                    new_best_min,
+                    new_best_max,
+                    stats,
+                );
+                // Record scores.
                 if (
                     (!best.score_defined) or
                     (self.turn == Player.PLAYER1 and candidate.score > best.score) or
                     (self.turn == Player.PLAYER2 and candidate.score < best.score)
                 ) {
-                    best.move = mov;
+                    best.move = move;
                     best.score = candidate.score;
                     best.score_defined = true;
+                    if (self.turn == Player.PLAYER1) {
+                        new_best_max = candidate.score;
+                    } else {
+                        new_best_min = candidate.score;
+                    }
                 }
             }
             // if (depth >= 2) {

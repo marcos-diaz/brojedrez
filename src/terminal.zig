@@ -146,7 +146,7 @@ pub fn loop() !void {
             (input_len == 2 and buffer[0] == 'p')
         ) {
             var stats: Stats = .{0} ** 16;
-            const minmax = board.minmax(0, 4, 7, &stats);
+            const minmax = board.minmax(0, 4, 10, 32000, -32000, &stats);
             const move = minmax.move orelse unreachable;
             const score = minmax.score;
             prev_board = board;
@@ -158,12 +158,13 @@ pub fn loop() !void {
             print_board(&board, &highlight);
             print("{s}>{s} play\n", .{green, reset});
             print("evaluated\n", .{});
-            print("  d=3 {d}\n", .{stats[3]});
             print("  d=4 {d}\n", .{stats[4]});
             print("  d=5 {d}\n", .{stats[5]});
             print("  d=6 {d}\n", .{stats[6]});
             print("  d=7 {d}\n", .{stats[7]});
             print("  d=8 {d}\n", .{stats[8]});
+            print("  d=9 {d}\n", .{stats[9]});
+            print("  d=10 {d}\n", .{stats[10]});
             // print("evaluated d=8 {d}\n", .{stats[8]});
             // print("evaluated d=10 {d}\n", .{stats[10]});
             print("minmax {s} {d}\n", .{move.notation(), score});
@@ -174,7 +175,7 @@ pub fn loop() !void {
         if (std.mem.eql(u8, buffer[0..8], "autoplay")) {
             for (0..100) |_| {
                 var stats: Stats = .{0} ** 16;
-                const minmax = board.minmax(0, 4, 7, &stats);
+                const minmax = board.minmax(0, 4, 7, 32000, -32000, &stats);
                 const move = minmax.move orelse break;
                 prev_board = board;
                 board = board.fork_with_move(move);
