@@ -78,7 +78,7 @@ pub const Move = struct {
 
 pub const MoveList = struct {
     len: u8 = 0,
-    data: [64]Move = undefined,
+    data: [128]Move = undefined,
 
     pub fn add(
         self: *MoveList,
@@ -88,3 +88,10 @@ pub const MoveList = struct {
         self.len += 1;
     }
 };
+
+pub const MoveAndScore = struct {
+    move: ?Move,
+    score: i16,
+    score_defined: bool = false,
+};
+

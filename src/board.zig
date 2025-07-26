@@ -5,6 +5,9 @@ const terminal = @import("terminal.zig");
 const Pos = @import("pos.zig").Pos;
 const Move = @import("pos.zig").Move;
 const MoveList = @import("pos.zig").MoveList;
+const MoveAndScore = @import("pos.zig").MoveAndScore;
+
+pub const Stats = [16]u32;
 
 const Player = enum {
     PLAYER1,
@@ -15,6 +18,15 @@ pub const Piece = enum {
     NONE,
     PAWN1, ROOK1, KNIG1, BISH1, QUEN1, KING1,
     PAWN2, ROOK2, KNIG2, BISH2, QUEN2, KING2,
+};
+
+pub const PieceValue = enum(i16) {
+    PAWN =     100,
+    KNIGHT =   400,
+    BISHOP =   500,
+    ROOK =     800,
+    QUEEN =   1500,
+    KING =   20000,
 };
 
 pub const Board = struct {
@@ -38,7 +50,7 @@ pub const Board = struct {
         return board;
     }
 
-    pub fn fork(
+    pub fn fork_with_move(
         self: *Board,
         mov: Move,
     ) Board {
@@ -233,6 +245,7 @@ pub const Board = struct {
         const advance_table = if (flip) tables.pawn_moves_p2 else tables.pawn_moves_p1;
         var moves = advance_table[pos.index];
         var all_mask = self.get_mask_all();
+        all_mask.remove(pos);
         var all_mask_shadow = (
             if (flip) BoardMask{.mask=((all_mask.mask << 16 ) >> 24)}
             else BoardMask{.mask=((all_mask.mask >> 16 ) << 24)}
@@ -357,8 +370,8 @@ pub const Board = struct {
                     movelist.add(next_move);
                 } else {
                     // Exclude moves that expose king.
-                    var forkk = self.fork(next_move);
-                    if (!forkk.can_capture_king()) {
+                    var fork = self.fork_with_move(next_move);
+                    if (!fork.can_capture_king()) {
                         movelist.add(next_move);
                     }
                 }
@@ -374,7 +387,6 @@ pub const Board = struct {
         const opp_king_pos = self.get_king_pos(if (self.turn==Player.PLAYER1) true else false);
         for (0..moves.len) |i| {
             const mov = moves.data[i];
-            // std.debug.print("  cck {s} {d} {d}\n", .{mov.notation(), mov.dest.index, opp_king_pos.index});
             if (mov.dest.index == opp_king_pos.index) {
                 return true;
             }
@@ -389,5 +401,62 @@ pub const Board = struct {
         const mask = if (p2) self.p2_kings else self.p1_kings;
         const index: u6 = @truncate(@ctz(mask.mask));
         return Pos{.index=index};
+    }
+
+    pub fn get_score(
+        self: *Board,
+    ) i16 {
+        var score: i16 = 0;
+        score += @as(i16, self.p1_pawns.count()) * @intFromEnum(PieceValue.PAWN);
+        score += @as(i16, self.p1_knigs.count()) * @intFromEnum(PieceValue.KNIGHT);
+        score += @as(i16, self.p1_bishs.count()) * @intFromEnum(PieceValue.BISHOP);
+        score += @as(i16, self.p1_rooks.count()) * @intFromEnum(PieceValue.QUEEN);
+        score += @as(i16, self.p1_quens.count()) * @intFromEnum(PieceValue.QUEEN);
+        score += @as(i16, self.p1_kings.count()) * @intFromEnum(PieceValue.KING);
+        score -= @as(i16, self.p2_pawns.count()) * @intFromEnum(PieceValue.PAWN);
+        score -= @as(i16, self.p2_knigs.count()) * @intFromEnum(PieceValue.KNIGHT);
+        score -= @as(i16, self.p2_bishs.count()) * @intFromEnum(PieceValue.BISHOP);
+        score -= @as(i16, self.p2_rooks.count()) * @intFromEnum(PieceValue.QUEEN);
+        score -= @as(i16, self.p2_quens.count()) * @intFromEnum(PieceValue.QUEEN);
+        score -= @as(i16, self.p2_kings.count()) * @intFromEnum(PieceValue.KING);
+        return score;
+    }
+
+    pub fn minmax(
+        self: *Board,
+        depth: u4,
+        stats: *Stats,
+    ) MoveAndScore {
+        if (depth == 0) {
+            const score = self.get_score();
+            stats.*[depth] += 1;
+            // terminal.indent(4-depth);
+            // std.debug.print("{d}\n", .{score});
+            return MoveAndScore{.move=null, .score=score};
+        } else {
+            var best: MoveAndScore = MoveAndScore{.move=null, .score=0};
+            const legal = self.get_legal_moves(false);
+            for (0..legal.len) |i| {
+                const mov = legal.data[i];
+                var fork = self.fork_with_move(mov);
+                // terminal.indent(4-depth);
+                // std.debug.print("{s}\n", .{mov.notation()});
+                // std.time.sleep(50_000_000);
+                const candidate = fork.minmax(depth - 1, stats);
+                if (
+                    (!best.score_defined) or
+                    (self.turn == Player.PLAYER1 and candidate.score > best.score) or
+                    (self.turn == Player.PLAYER2 and candidate.score < best.score)
+                ) {
+                    best.move = mov;
+                    best.score = candidate.score;
+                    best.score_defined = true;
+                }
+            }
+            // const best_move = best.move orelse unreachable;
+            // terminal.indent(4-depth);
+            // std.debug.print("best {s} {d}\n", .{best_move.notation(), best.score});
+            return best;
+        }
     }
 };

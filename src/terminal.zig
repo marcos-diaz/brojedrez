@@ -2,6 +2,7 @@ const std = @import("std");
 const BoardMask = @import("boardmask.zig").BoardMask;
 const Board = @import("board.zig").Board;
 const Piece = @import("board.zig").Piece;
+const Stats = @import("board.zig").Stats;
 const Pos = @import("pos.zig").Pos;
 const Move = @import("pos.zig").Move;
 
@@ -78,6 +79,14 @@ pub fn print_bin(
     std.debug.print("{b:0>8}\n", .{number});
 }
 
+pub fn indent(
+    spaces: u8,
+) void {
+    for (0..spaces) |_| {
+        print("  ", .{});
+    }
+}
+
 pub fn loop() !void {
     var board = Board.init();
     try clear();
@@ -88,30 +97,18 @@ pub fn loop() !void {
     var buffer: [8]u8 = undefined;
 
     while(true) {
-        if (has_selected) {
-            std.debug.print("\nSelected: {s}\n", .{selected.notation()});
-            std.debug.print("Available moves: ", .{});
-            for(0..64) |_pos| {
-                const pos = Pos.from_int(@intCast(63 - _pos));
-                if (highlight.has(pos)) {
-                    std.debug.print("{s}{s}, ", .{
-                        selected.notation(),
-                        pos.notation(),
-                    });
-                }
-            }
-        }
-
-        std.debug.print("\n{s}> {s} ", .{green, reset});
+        print("{s}>{s} ", .{green, reset});
         @memset(&buffer, 0);
         const input_len = try stdin.read(&buffer);
 
-        try clear();
+        // try clear();
 
         if (std.mem.eql(u8, buffer[0..5], "reset")) {
             board.reset();
             has_selected = false;
             highlight = BoardMask{.mask=0};
+            try clear();
+            print_board(&board, &highlight);
         }
 
         else if (std.mem.eql(u8, buffer[0..5], "legal")) {
@@ -129,13 +126,22 @@ pub fn loop() !void {
         }
 
         // Autoplay once.
-        else if (std.mem.eql(u8, buffer[0..4], "play")) {
-            const legal = board.get_legal_moves(false);
-            const move = legal.data[0];
+        else if (std.mem.eql(u8, buffer[0..1], "p")) {
+            var stats: Stats = .{0} ** 16;
+            const minmax = board.minmax(4, &stats);
+            const move = minmax.move orelse unreachable;
+            const score = minmax.score;
             _ = board.move(move);
             highlight.reset();
             highlight.add(move.orig);
             highlight.add(move.dest);
+            try clear();
+            print_board(&board, &highlight);
+            print("evaluated d=1 {d}\n", .{stats[3]});
+            print("evaluated d=2 {d}\n", .{stats[2]});
+            print("evaluated d=3 {d}\n", .{stats[1]});
+            print("evaluated d=4 {d}\n", .{stats[0]});
+            print("minmax {s} {d}\n", .{move.notation(), score});
         }
 
         // Autoplay.
@@ -159,6 +165,21 @@ pub fn loop() !void {
             selected = pos;
             has_selected = true;
             highlight = board.get_legal_moves_for_pos(pos);
+            try clear();
+            print_board(&board, &highlight);
+            print("{s}>{s} {s}\n", .{green, reset, selected.notation()});
+            print("Selected: {s}\n", .{selected.notation()});
+            print("Available moves: ", .{});
+            for(0..64) |_pos| {
+                const hpos = Pos.from_int(@intCast(63 - _pos));
+                if (highlight.has(hpos)) {
+                    std.debug.print("{s}{s}, ", .{
+                        selected.notation(),
+                        hpos.notation(),
+                    });
+                }
+            }
+            print("\n", .{});
         }
 
         // Move.
@@ -166,13 +187,15 @@ pub fn loop() !void {
             const orig = Pos.from_notation(buffer[0], buffer[1]);
             const dest = Pos.from_notation(buffer[2], buffer[3]);
             const captured = board.move(Move{.orig=orig, .dest=dest});
-            if (captured) print("CAPTURED\n", .{});
             highlight.reset();
             highlight.add(orig);
             highlight.add(dest);
             has_selected = false;
+            try clear();
+            print_board(&board, &highlight);
+            print("{s}>{s} {s}{s}\n", .{green, reset, orig.notation(), dest.notation()});
+            if (captured) print("CAPTURED\n", .{});
         }
-        print_board(&board, &highlight);
     }
 }
 
