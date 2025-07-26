@@ -15,6 +15,7 @@ pub const blue =  "\x1b[94m";
 pub const red =   "\x1b[31m";
 pub const green = "\x1b[32m";
 pub const grey =  "\x1b[90m";
+pub const grey2 = "\x1b[38;5;236m";
 
 pub const red2 =  "\x1b[38;5;215m";
 pub const blue2 = "\x1b[38;5;117m";
@@ -40,19 +41,22 @@ pub fn print_board(
             const pre: u8 =  if (highlight.has(pos)) '[' else ' ';
             const post: u8 = if (highlight.has(pos)) ']' else ' ';
             switch (piece) {
-                Piece.NONE  => print("{c}{s}-{s}{c}", .{pre, grey, reset, post}),
-                Piece.PAWN1 => print("{c}{s}o{s}{c}", .{pre, blue, reset, post}),
-                Piece.ROOK1 => print("{c}{s}+{s}{c}", .{pre, blue, reset, post}),
-                Piece.KNIG1 => print("{c}{s}L{s}{c}", .{pre, blue, reset, post}),
-                Piece.BISH1 => print("{c}{s}x{s}{c}", .{pre, blue, reset, post}),
-                Piece.QUEN1 => print("{c}{s}Q{s}{c}", .{pre, blue2, reset, post}),
-                Piece.KING1 => print("{c}{s}K{s}{c}", .{pre, blue2, reset, post}),
-                Piece.PAWN2 => print("{c}{s}o{s}{c}", .{pre, red, reset, post}),
-                Piece.ROOK2 => print("{c}{s}+{s}{c}", .{pre, red, reset, post}),
-                Piece.KNIG2 => print("{c}{s}L{s}{c}", .{pre, red, reset, post}),
-                Piece.BISH2 => print("{c}{s}x{s}{c}", .{pre, red, reset, post}),
-                Piece.QUEN2 => print("{c}{s}Q{s}{c}", .{pre, red2, reset, post}),
-                Piece.KING2 => print("{c}{s}K{s}{c}", .{pre, red2, reset, post}),
+                Piece.NONE => {
+                    const color = if (pos.row() % 2 == pos.col() % 2) grey else grey2;
+                    print("{c}{s}-{s}{c}", .{pre, color, reset, post});
+                },
+                Piece.PAWN1 => print("{c}{s}○{s}{c}", .{pre, blue, reset, post}),
+                Piece.PAWN2 => print("{c}{s}○{s}{c}", .{pre, red, reset, post}),
+                Piece.ROOK1 => print("{c}{s}■{s}{c}", .{pre, blue, reset, post}),
+                Piece.ROOK2 => print("{c}{s}■{s}{c}", .{pre, red, reset, post}),
+                Piece.KNIG1 => print("{c}{s}◖{s}{c}", .{pre, blue, reset, post}),
+                Piece.KNIG2 => print("{c}{s}◖{s}{c}", .{pre, red, reset, post}),
+                Piece.BISH1 => print("{c}{s}▲{s}{c}", .{pre, blue, reset, post}),
+                Piece.BISH2 => print("{c}{s}▲{s}{c}", .{pre, red, reset, post}),
+                Piece.QUEN1 => print("{c}{s}◆{s}{c}", .{pre, blue2, reset, post}),
+                Piece.QUEN2 => print("{c}{s}◆{s}{c}", .{pre, red2, reset, post}),
+                Piece.KING1 => print("{c}{s}✖{s}{c}", .{pre, blue2, reset, post}),
+                Piece.KING2 => print("{c}{s}✖{s}{c}", .{pre, red2, reset, post}),
             }
         }
         print("  {d}", .{8-row});
@@ -153,15 +157,23 @@ pub fn loop() !void {
         // Autoplay loop.
         else if (std.mem.eql(u8, buffer[0..8], "autoplay")) {
             for (0..100) |_| {
-                try clear();
-                const legal = board.get_legal_moves(false);
-                const move = legal.data[100 % legal.len];
+                var stats: Stats = .{0} ** 16;
+                const minmax = board.minmax(4, &stats);
+                const move = minmax.move orelse break;
+                const score = minmax.score;
                 _ = board.move(move);
                 highlight.reset();
                 highlight.add(move.orig);
                 highlight.add(move.dest);
+                try clear();
                 print_board(&board, &highlight);
-                std.time.sleep(100_000_000);
+                print("{s}>{s} play\n", .{green, reset});
+                print("evaluated d=1 {d}\n", .{stats[3]});
+                print("evaluated d=2 {d}\n", .{stats[2]});
+                print("evaluated d=3 {d}\n", .{stats[1]});
+                print("evaluated d=4 {d}\n", .{stats[0]});
+                print("minmax {s} {d}\n", .{move.notation(), score});
+                std.time.sleep(1_000_000_000);
             }
         }
 
