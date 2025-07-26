@@ -95,6 +95,7 @@ pub fn indent(
 
 pub fn loop() !void {
     var board = Board.init();
+    var prev_board = Board.init();
     try clear();
     var selected: Pos = undefined;
     var has_selected = false;
@@ -107,12 +108,16 @@ pub fn loop() !void {
         @memset(&buffer, 0);
         const input_len = try stdin.read(&buffer);
 
-        // try clear();
-
         if (std.mem.eql(u8, buffer[0..5], "reset")) {
             board.reset();
             has_selected = false;
             highlight = BoardMask{.mask=0};
+            try clear();
+            print_board(&board, &highlight);
+        }
+
+        if (std.mem.eql(u8, buffer[0..4], "undo")) {
+            board = prev_board;
             try clear();
             print_board(&board, &highlight);
         }
@@ -140,7 +145,8 @@ pub fn loop() !void {
             const minmax = board.minmax(4, &stats);
             const move = minmax.move orelse unreachable;
             const score = minmax.score;
-            _ = board.move(move);
+            prev_board = board;
+            board = board.fork_with_move(move);
             highlight.reset();
             highlight.add(move.orig);
             highlight.add(move.dest);
@@ -160,19 +166,13 @@ pub fn loop() !void {
                 var stats: Stats = .{0} ** 16;
                 const minmax = board.minmax(4, &stats);
                 const move = minmax.move orelse break;
-                const score = minmax.score;
-                _ = board.move(move);
+                prev_board = board;
+                board = board.fork_with_move(move);
                 highlight.reset();
                 highlight.add(move.orig);
                 highlight.add(move.dest);
                 try clear();
                 print_board(&board, &highlight);
-                print("{s}>{s} play\n", .{green, reset});
-                print("evaluated d=1 {d}\n", .{stats[3]});
-                print("evaluated d=2 {d}\n", .{stats[2]});
-                print("evaluated d=3 {d}\n", .{stats[1]});
-                print("evaluated d=4 {d}\n", .{stats[0]});
-                print("minmax {s} {d}\n", .{move.notation(), score});
                 std.time.sleep(1_000_000_000);
             }
         }
@@ -201,10 +201,22 @@ pub fn loop() !void {
         }
 
         // Move.
-        else if(input_len == 5) {
-            const orig = Pos.from_notation(buffer[0], buffer[1]);
-            const dest = Pos.from_notation(buffer[2], buffer[3]);
-            const captured = board.move(Move{.orig=orig, .dest=dest});
+        else if(
+            (input_len == 5) or
+            (input_len == 4 and buffer[0] == '.')
+        ) {
+            var orig: Pos = undefined;
+            var dest: Pos = undefined;
+            if (input_len == 5) {
+                orig = Pos.from_notation(buffer[0], buffer[1]);
+                dest = Pos.from_notation(buffer[2], buffer[3]);
+            }
+            if (input_len == 4) {
+                orig = selected;
+                dest = Pos.from_notation(buffer[1], buffer[2]);
+            }
+            prev_board = board;
+            board = board.fork_with_move(Move{.orig=orig, .dest=dest});
             highlight.reset();
             highlight.add(orig);
             highlight.add(dest);
@@ -212,7 +224,7 @@ pub fn loop() !void {
             try clear();
             print_board(&board, &highlight);
             print("{s}>{s} {s}{s}\n", .{green, reset, orig.notation(), dest.notation()});
-            if (captured) print("CAPTURED\n", .{});
+            // if (captured) print("CAPTURED\n", .{});
         }
 
         else {

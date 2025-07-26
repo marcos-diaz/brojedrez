@@ -21,12 +21,12 @@ pub const Piece = enum {
 };
 
 pub const PieceValue = enum(i16) {
-    PAWN =     100,
-    KNIGHT =   400,
-    BISHOP =   500,
-    ROOK =     800,
-    QUEEN =   1500,
-    KING =   20000,
+    PAWN =     1,
+    KNIGHT =   4,
+    BISHOP =   5,
+    ROOK =     8,
+    QUEEN =   15,
+    KING =  1000,
 };
 
 pub const Board = struct {
@@ -407,18 +407,28 @@ pub const Board = struct {
         self: *Board,
     ) i16 {
         var score: i16 = 0;
-        score += @as(i16, self.p1_pawns.count()) * @intFromEnum(PieceValue.PAWN);
-        score += @as(i16, self.p1_knigs.count()) * @intFromEnum(PieceValue.KNIGHT);
-        score += @as(i16, self.p1_bishs.count()) * @intFromEnum(PieceValue.BISHOP);
-        score += @as(i16, self.p1_rooks.count()) * @intFromEnum(PieceValue.QUEEN);
-        score += @as(i16, self.p1_quens.count()) * @intFromEnum(PieceValue.QUEEN);
-        score += @as(i16, self.p1_kings.count()) * @intFromEnum(PieceValue.KING);
-        score -= @as(i16, self.p2_pawns.count()) * @intFromEnum(PieceValue.PAWN);
-        score -= @as(i16, self.p2_knigs.count()) * @intFromEnum(PieceValue.KNIGHT);
-        score -= @as(i16, self.p2_bishs.count()) * @intFromEnum(PieceValue.BISHOP);
-        score -= @as(i16, self.p2_rooks.count()) * @intFromEnum(PieceValue.QUEEN);
-        score -= @as(i16, self.p2_quens.count()) * @intFromEnum(PieceValue.QUEEN);
-        score -= @as(i16, self.p2_kings.count()) * @intFromEnum(PieceValue.KING);
+
+        for (0..self.p1_pawns.count()) |_| {
+            const pos = self.p1_pawns.next();
+            score += @intFromEnum(PieceValue.PAWN) * tables.pawn_score[pos.index];
+        }
+        for (0..self.p2_pawns.count()) |_| {
+            const pos = self.p2_pawns.next();
+            score -= @intFromEnum(PieceValue.PAWN) * tables.pawn_score[pos.reverse().index];
+        }
+
+        score += @as(i16, self.p1_pawns.count()) * 10 *  @intFromEnum(PieceValue.PAWN);
+        score += @as(i16, self.p2_pawns.count()) * 10 * -@intFromEnum(PieceValue.PAWN);
+        score += @as(i16, self.p1_knigs.count()) * 10 *  @intFromEnum(PieceValue.KNIGHT);
+        score += @as(i16, self.p2_knigs.count()) * 10 * -@intFromEnum(PieceValue.KNIGHT);
+        score += @as(i16, self.p1_bishs.count()) * 10 *  @intFromEnum(PieceValue.BISHOP);
+        score += @as(i16, self.p2_bishs.count()) * 10 * -@intFromEnum(PieceValue.BISHOP);
+        score += @as(i16, self.p1_rooks.count()) * 10 *  @intFromEnum(PieceValue.ROOK);
+        score += @as(i16, self.p2_rooks.count()) * 10 * -@intFromEnum(PieceValue.ROOK);
+        score += @as(i16, self.p1_quens.count()) * 10 *  @intFromEnum(PieceValue.QUEEN);
+        score += @as(i16, self.p2_quens.count()) * 10 * -@intFromEnum(PieceValue.QUEEN);
+        score += @as(i16, self.p1_kings.count()) * 10 *  @intFromEnum(PieceValue.KING);
+        score += @as(i16, self.p2_kings.count()) * 10 * -@intFromEnum(PieceValue.KING);
         return score;
     }
 
@@ -431,7 +441,7 @@ pub const Board = struct {
             const score = self.get_score();
             stats.*[depth] += 1;
             // terminal.indent(4-depth);
-            // std.debug.print("{d}\n", .{score});
+            // std.debug.print("{d}", .{score});
             return MoveAndScore{.move=null, .score=score};
         } else {
             var best: MoveAndScore = MoveAndScore{.move=null, .score=0};
@@ -439,10 +449,11 @@ pub const Board = struct {
             for (0..legal.len) |i| {
                 const mov = legal.data[i];
                 var fork = self.fork_with_move(mov);
+                // std.debug.print("\n", .{});
                 // terminal.indent(4-depth);
-                // std.debug.print("{s}\n", .{mov.notation()});
-                // std.time.sleep(50_000_000);
-                const candidate = fork.minmax(depth - 1, stats);
+                // std.debug.print("{s} ", .{mov.notation()});
+                // std.time.sleep(1_000_000);
+                const candidate = fork.minmax(depth-1, stats);
                 if (
                     (!best.score_defined) or
                     (self.turn == Player.PLAYER1 and candidate.score > best.score) or
@@ -453,9 +464,12 @@ pub const Board = struct {
                     best.score_defined = true;
                 }
             }
-            // const best_move = best.move orelse unreachable;
-            // terminal.indent(4-depth);
-            // std.debug.print("best {s} {d}\n", .{best_move.notation(), best.score});
+            // if (depth >= 2) {
+            //     std.debug.print("\n", .{});
+            //     terminal.indent(4-depth);
+            //     const player = if (self.turn == Player.PLAYER1) "MAX" else "MIN";
+            //     std.debug.print("best {d} {s} {s} {d}", .{depth, player, best_move.notation(), best.score});
+            // }
             return best;
         }
     }
