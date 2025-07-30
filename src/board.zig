@@ -21,17 +21,17 @@ pub const Piece = enum {
 };
 
 pub const PieceValue = enum(i16) {
-    PAWN =     1,
-    KNIGHT =   4,
-    BISHOP =   5,
-    ROOK =     8,
-    QUEEN =   15,
-    KING =   100,
+    PAWN =     100,
+    KNIGHT =   400,
+    BISHOP =   500,
+    ROOK =     800,
+    QUEEN =   1500,
 };
 
 pub const Board = struct {
     turn: Player = Player.PLAYER1,
-    last_move_was_capture: bool = false,
+    n_pieces: u8 = 32,
+    is_contested: bool = false,
     p1_pawns: BoardMask = BoardMask{},
     p1_rooks: BoardMask = BoardMask{},
     p1_knigs: BoardMask = BoardMask{},
@@ -51,12 +51,13 @@ pub const Board = struct {
         return board;
     }
 
-    pub fn fork_with_move(
+    pub fn clone(
         self: *Board,
-        move: Move,
     ) Board {
-        var board = Board{
+        const board = Board{
             .turn=self.turn,
+            .n_pieces=self.n_pieces,
+            .is_contested=self.is_contested,
             .p1_pawns=self.p1_pawns,
             .p1_rooks=self.p1_rooks,
             .p1_knigs=self.p1_knigs,
@@ -70,7 +71,6 @@ pub const Board = struct {
             .p2_quens=self.p2_quens,
             .p2_kings=self.p2_kings,
         };
-        board.do_move(move);
         return board;
     }
 
@@ -90,6 +90,24 @@ pub const Board = struct {
         self.p2_bishs = BoardMask{.mask=0b00100100 << 56};
         self.p2_quens = BoardMask{.mask=0b00010000 << 56};
         self.p2_kings = BoardMask{.mask=0b00001000 << 56};
+    }
+
+    pub fn setup(
+        self: *Board,
+    ) void {
+        self.turn = Player.PLAYER1;
+        self.p2_pawns = BoardMask{.mask=0b00000000_10000000_01000000_00001000_00011000_00000000_00000000_00000000};
+        self.p2_rooks = BoardMask{.mask=0b00000000_00000000_00000000_00000000_00000000_00000000_00000000_00000000};
+        self.p2_knigs = BoardMask{.mask=0b00000000_00000000_00000000_00000000_00000000_00000000_00000000_00000000};
+        self.p2_bishs = BoardMask{.mask=0b00001000_00000000_00000000_00000000_00000000_00000000_00000000_00000000};
+        self.p2_quens = BoardMask{.mask=0b00000000_00000000_00000000_00000000_00000000_00000000_00000000_00000000};
+        self.p2_kings = BoardMask{.mask=0b00010000_00000000_00000000_00000000_00000000_00000000_00000000_00000000};
+        self.p1_pawns = BoardMask{.mask=0b00000000_00000000_00000000_00000001_10000000_00001000_00000100_00000000};
+        self.p1_rooks = BoardMask{.mask=0b00000000_00000000_00000000_00000000_00000000_00000000_00000000_00000000};
+        self.p1_knigs = BoardMask{.mask=0b00000000_00000000_00000010_00000000_00000000_00000000_00000000_00000000};
+        self.p1_bishs = BoardMask{.mask=0b00000000_00000000_00000000_00000000_00000000_00000000_00000000_00000000};
+        self.p1_quens = BoardMask{.mask=0b00000000_00000000_00000000_00000000_00000000_00000000_00000000_00000000};
+        self.p1_kings = BoardMask{.mask=0b00000000_00000000_00000000_00000000_00000000_00000000_00100000_00000000};
     }
 
     pub fn get(
@@ -161,14 +179,21 @@ pub const Board = struct {
     ) void {
         const piece = self.get(move.orig);
         var mask = self.get_mask_all();
-        self.last_move_was_capture = mask.has(move.dest);
+        const captured = mask.has(move.dest);
+        if (captured) self.n_pieces -= 1;
+        const pawn_walk = self.n_pieces < 12 and (piece==Piece.PAWN1 or piece==Piece.PAWN2);
+        self.is_contested = (
+            (captured == true) or
+            self.is_check_on_opp() or
+            pawn_walk
+            // piece==Piece.PAWN1 or
+            // piece==Piece.PAWN2
+            // self.is_check_on_own()
+        );
         self.remove(move.orig);
         self.remove(move.dest);
         self.add(move.dest, piece);
-        self.turn = (
-            if (self.turn == Player.PLAYER1) Player.PLAYER2
-            else Player.PLAYER1
-        );
+        self.switch_turn();
         if (piece == Piece.PAWN1 and move.dest.row() == 7) {
             self.remove(move.dest);
             self.add(move.dest, Piece.QUEN1);
@@ -371,7 +396,7 @@ pub const Board = struct {
                 } else {
                     // Exclude moves that expose king.
                     var fork = self.fork_with_move(next_move);
-                    if (!fork.can_capture_king()) {
+                    if (!fork.is_check_on_opp()) {
                         movelist.add(next_move);
                     }
                 }
@@ -380,14 +405,48 @@ pub const Board = struct {
         return movelist;
     }
 
-    pub fn can_capture_king(
+    pub fn fork_with_move(
+        self: *Board,
+        move: Move,
+    ) Board {
+        var board = self.clone();
+        board.do_move(move);
+        return board;
+    }
+
+    pub fn switch_turn(
+        self: *Board,
+    ) void {
+        self.turn = (
+            if (self.turn == Player.PLAYER1) Player.PLAYER2
+            else Player.PLAYER1
+        );
+    }
+
+    pub fn is_check_on_opp(
         self: *Board,
     ) bool {
         const moves = self.get_legal_moves(true);
         const opp_king_pos = self.get_king_pos(if (self.turn==Player.PLAYER1) true else false);
         for (0..moves.len) |i| {
-            const mov = moves.data[i];
-            if (mov.dest.index == opp_king_pos.index) {
+            const move = moves.data[i];
+            if (move.dest.index == opp_king_pos.index) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    pub fn is_check_on_own(
+        self: *Board,
+    ) bool {
+        var board = self.clone();
+        board.switch_turn();
+        const moves = board.get_legal_moves(false);
+        const own_king_pos = self.get_king_pos(if (self.turn==Player.PLAYER1) false else true);
+        for (0..moves.len) |i| {
+            const move = moves.data[i];
+            if (move.dest.index == own_king_pos.index) {
                 return true;
             }
         }
@@ -407,36 +466,46 @@ pub const Board = struct {
         self: *Board,
     ) i16 {
         var score: i16 = 0;
-
         for (0..self.p1_pawns.count()) |_| {
             const pos = self.p1_pawns.next();
-            score += @intFromEnum(PieceValue.PAWN) * tables.pawn_score[pos.index];
+            score += @intFromEnum(PieceValue.PAWN) + tables.pawn_score[pos.reverse().index];
         }
         for (0..self.p2_pawns.count()) |_| {
             const pos = self.p2_pawns.next();
-            score -= @intFromEnum(PieceValue.PAWN) * tables.pawn_score[pos.reverse().index];
+            score -= @intFromEnum(PieceValue.PAWN) + tables.pawn_score[pos.index];
         }
         for (0..self.p1_knigs.count()) |_| {
             const pos = self.p1_knigs.next();
-            score += @intFromEnum(PieceValue.KNIGHT) * tables.knight_score[pos.index];
+            score += @intFromEnum(PieceValue.KNIGHT) + tables.piece_score[pos.reverse().index];
         }
         for (0..self.p2_knigs.count()) |_| {
             const pos = self.p2_knigs.next();
-            score -= @intFromEnum(PieceValue.KNIGHT) * tables.knight_score[pos.reverse().index];
+            score -= @intFromEnum(PieceValue.KNIGHT) + tables.piece_score[pos.index];
         }
-
-        score += @as(i16, self.p1_pawns.count()) * 100 *  @intFromEnum(PieceValue.PAWN);
-        score += @as(i16, self.p2_pawns.count()) * 100 * -@intFromEnum(PieceValue.PAWN);
-        score += @as(i16, self.p1_knigs.count()) * 100 *  @intFromEnum(PieceValue.KNIGHT);
-        score += @as(i16, self.p2_knigs.count()) * 100 * -@intFromEnum(PieceValue.KNIGHT);
-        score += @as(i16, self.p1_bishs.count()) * 100 *  @intFromEnum(PieceValue.BISHOP);
-        score += @as(i16, self.p2_bishs.count()) * 100 * -@intFromEnum(PieceValue.BISHOP);
-        score += @as(i16, self.p1_rooks.count()) * 100 *  @intFromEnum(PieceValue.ROOK);
-        score += @as(i16, self.p2_rooks.count()) * 100 * -@intFromEnum(PieceValue.ROOK);
-        score += @as(i16, self.p1_quens.count()) * 100 *  @intFromEnum(PieceValue.QUEEN);
-        score += @as(i16, self.p2_quens.count()) * 100 * -@intFromEnum(PieceValue.QUEEN);
-        score += @as(i16, self.p1_kings.count()) * 100 *  @intFromEnum(PieceValue.KING);
-        score += @as(i16, self.p2_kings.count()) * 100 * -@intFromEnum(PieceValue.KING);
+        for (0..self.p1_bishs.count()) |_| {
+            const pos = self.p1_bishs.next();
+            score += @intFromEnum(PieceValue.BISHOP) + tables.piece_score[pos.reverse().index];
+        }
+        for (0..self.p2_bishs.count()) |_| {
+            const pos = self.p2_bishs.next();
+            score -= @intFromEnum(PieceValue.BISHOP) + tables.piece_score[pos.index];
+        }
+        for (0..self.p1_rooks.count()) |_| {
+            const pos = self.p1_rooks.next();
+            score += @intFromEnum(PieceValue.ROOK) + tables.piece_score[pos.reverse().index];
+        }
+        for (0..self.p2_rooks.count()) |_| {
+            const pos = self.p2_rooks.next();
+            score -= @intFromEnum(PieceValue.ROOK) + tables.piece_score[pos.index];
+        }
+        for (0..self.p1_quens.count()) |_| {
+            const pos = self.p1_quens.next();
+            score += @intFromEnum(PieceValue.QUEEN) + tables.piece_score[pos.reverse().index];
+        }
+        for (0..self.p2_quens.count()) |_| {
+            const pos = self.p2_quens.next();
+            score -= @intFromEnum(PieceValue.QUEEN) + tables.piece_score[pos.index];
+        }
         return score;
     }
 
@@ -451,19 +520,19 @@ pub const Board = struct {
     ) MoveAndScore {
         // Extend search.
         var depth_extra: u4 = 0;
-        if (depth == depth_target and depth < depth_max and self.last_move_was_capture) {
+        if (depth == depth_target and depth < depth_max and self.is_contested) {
             depth_extra += 1;
         }
-        // If it is a leaf then score.
+        // Calculate score on leafs.
         if (depth == depth_target + depth_extra) {
             const score = self.get_score();
             stats.*[depth] += 1;
-            // terminal.indent(4-depth);
-            // std.debug.print("{d}", .{score});
             return MoveAndScore{.move=null, .score=score};
         // Explore branches.
         } else {
-            var best: MoveAndScore = MoveAndScore{.move=null, .score=0};
+            var init_score: i16 = @as(i16, -32000) + depth;
+            if (self.turn==Player.PLAYER2) init_score = -init_score;
+            var best: MoveAndScore = MoveAndScore{.move=null, .score=init_score};
             var new_best_min = best_min;
             var new_best_max = best_max;
             const legal = self.get_legal_moves(false);
@@ -471,16 +540,11 @@ pub const Board = struct {
                 const move = legal.data[i];
                 // Prune.
                 if (best_min <= best_max) {
-                    best.score = best_min+1;  // Never gets picked.
-                    best.score_defined = true;
+                    best.score = if (self.turn==Player.PLAYER1) best_max-1 else best_min+1;
                     break;
                 }
                 // Go deeper.
                 var fork = self.fork_with_move(move);
-                // std.debug.print("\n", .{});
-                // terminal.indent(4-depth);
-                // std.debug.print("{s} ", .{mov.notation()});
-                // std.time.sleep(1_000_000);
                 const candidate = fork.minmax(
                     depth+1,
                     depth_target+depth_extra,
@@ -489,7 +553,7 @@ pub const Board = struct {
                     new_best_max,
                     stats,
                 );
-                // Record scores.
+                // Compare scores.
                 if (
                     (!best.score_defined) or
                     (self.turn == Player.PLAYER1 and candidate.score > best.score) or
@@ -505,12 +569,9 @@ pub const Board = struct {
                     }
                 }
             }
-            // if (depth >= 2) {
-            //     std.debug.print("\n", .{});
-            //     terminal.indent(4-depth);
-            //     const player = if (self.turn == Player.PLAYER1) "MAX" else "MIN";
-            //     std.debug.print("best {d} {s} {s} {d}", .{depth, player, best_move.notation(), best.score});
-            // }
+            if (legal.len == 0 and !self.is_check_on_own()) {
+                best.score = 0;  // Draw by stalemate.
+            }
             return best;
         }
     }

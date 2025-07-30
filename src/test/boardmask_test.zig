@@ -1,6 +1,7 @@
 const expect = @import("std").testing.expect;
 const warn = @import("std").log.warn;
 const BoardMask = @import("../boardmask.zig").BoardMask;
+const Pos = @import("../pos.zig").Pos;
 
 test "diagonal" {
     // var mask1 = BoardMask{.mask = (
@@ -21,4 +22,21 @@ test "diagonal" {
     // try expect(mask1.get_diagonal_down(5) == 0b11111110);
     // try expect(mask1.get_diagonal_down(6) == 0b11111100);
     // try expect(mask1.get_diagonal_down(7) == 0b11111110);
+}
+
+test "next" {
+    var mask1 = BoardMask{.mask = (
+        (@as(u64, 0b10000000) << 8*7) |
+        (@as(u64, 0b00000000) << 8*6) |
+        (@as(u64, 0b00000000) << 8*5) |
+        (@as(u64, 0b00000000) << 8*4) |
+        (@as(u64, 0b00000000) << 8*3) |
+        (@as(u64, 0b00000000) << 8*2) |
+        (@as(u64, 0b00000000) << 8*1) |
+        (@as(u64, 0b10000001) << 8*0)
+    )};
+    // std.debug.log()
+    try expect(mask1.next().index == 0);
+    try expect(mask1.next().index == 7);
+    try expect(mask1.next().index == 63);
 }

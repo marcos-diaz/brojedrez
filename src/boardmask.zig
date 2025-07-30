@@ -4,7 +4,7 @@ const Pos = @import("pos.zig").Pos;
 
 pub const BoardMask = struct {
     mask: u64 = 0,
-    next_index: u6 = 0,
+    next_index: u7 = 0,
 
     pub fn reset(
         self: *BoardMask,
@@ -71,9 +71,9 @@ pub const BoardMask = struct {
     pub fn next(
         self: *BoardMask,
     ) Pos {
-        const index = @ctz(self.mask >> self.next_index);
-        self.next_index +|= @intCast(index);
-        self.next_index +|= 1;
+        const index = @ctz(self.mask >> @truncate(self.next_index));
+        self.next_index += @intCast(index);
+        self.next_index += 1;
         return Pos.from_int(@truncate(self.next_index - 1));
     }
 

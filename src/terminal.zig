@@ -117,6 +117,16 @@ pub fn loop() !void {
             continue;
         }
 
+        if (std.mem.eql(u8, buffer[0..5], "setup")) {
+            board = Board{};
+            board.setup();
+            has_selected = false;
+            highlight = BoardMask{.mask=0};
+            try clear();
+            print_board(&board, &highlight);
+            continue;
+        }
+
         if (std.mem.eql(u8, buffer[0..4], "undo")) {
             board = prev_board;
             try clear();
@@ -134,8 +144,14 @@ pub fn loop() !void {
             continue;
         }
 
+        if (std.mem.eql(u8, buffer[0..4], "eval")) {
+            const score = board.get_score();
+            print("score={d}\n", .{score});
+            continue;
+        }
+
         if (std.mem.eql(u8, buffer[0..4], "king")) {
-            const can_capture_king = board.can_capture_king();
+            const can_capture_king = board.is_check_on_opp();
             print("can_capture_king={}\n", .{can_capture_king});
             continue;
         }
