@@ -55,8 +55,8 @@ pub fn print_board(
                 Piece.BISH2 => print("{c}{s}▲{s}{c}", .{pre, red, reset, post}),
                 Piece.QUEN1 => print("{c}{s}◆{s}{c}", .{pre, blue2, reset, post}),
                 Piece.QUEN2 => print("{c}{s}◆{s}{c}", .{pre, red2, reset, post}),
-                Piece.KING1 => print("{c}{s}✖{s}{c}", .{pre, blue2, reset, post}),
-                Piece.KING2 => print("{c}{s}✖{s}{c}", .{pre, red2, reset, post}),
+                Piece.KING1 => print("{c}{s}✚{s}{c}", .{pre, blue2, reset, post}),
+                Piece.KING2 => print("{c}{s}✚{s}{c}", .{pre, red2, reset, post}),
             }
         }
         print("  {d}", .{8-row});
@@ -101,7 +101,7 @@ pub fn loop() !void {
     var has_selected = false;
     var highlight = BoardMask{.mask=0};
     print_board(&board, &highlight);
-    var buffer: [8]u8 = undefined;
+    var buffer: [16]u8 = undefined;
 
     while(true) {
         print("{s}>{s} ", .{green, reset});
@@ -120,6 +120,7 @@ pub fn loop() !void {
         if (std.mem.eql(u8, buffer[0..5], "setup")) {
             board = Board{};
             board.setup();
+            board.switch_turn();
             has_selected = false;
             highlight = BoardMask{.mask=0};
             try clear();
@@ -144,6 +145,16 @@ pub fn loop() !void {
             continue;
         }
 
+        // if (std.mem.eql(u8, buffer[0..5], "capture")) {
+        //     const legal = board.get_legal_moves(false);
+        //     for (0..legal.len) |i| {
+        //         const move = legal.data[i];
+        //         print("{s}, ", .{ move.notation() });
+        //     }
+        //     print("\n", .{});
+        //     continue;
+        // }
+
         if (std.mem.eql(u8, buffer[0..4], "eval")) {
             const score = board.get_score();
             print("score={d}\n", .{score});
@@ -156,13 +167,31 @@ pub fn loop() !void {
             continue;
         }
 
+        if (std.mem.eql(u8, buffer[0..4], "dump")) {
+            const str = board.save_to_string();
+            print("\"{s}\" ++\n", .{str[8*0..1*8]});
+            print("\"{s}\" ++\n", .{str[8*1..2*8]});
+            print("\"{s}\" ++\n", .{str[8*2..3*8]});
+            print("\"{s}\" ++\n", .{str[8*3..4*8]});
+            print("\"{s}\" ++\n", .{str[8*4..5*8]});
+            print("\"{s}\" ++\n", .{str[8*5..6*8]});
+            print("\"{s}\" ++\n", .{str[8*6..7*8]});
+            print("\"{s}\"\n",    .{str[8*7..8*8]});
+            continue;
+        }
+
         // Autoplay once.
         if (
             (input_len == 5 and (std.mem.eql(u8, buffer[0..4], "play"))) or
             (input_len == 2 and buffer[0] == 'p')
         ) {
-            var stats: Stats = .{0} ** 16;
+            var stats = Stats{.evals=.{0}**16};
+            const start = std.time.nanoTimestamp();
             const minmax = board.minmax(0, 4, 10, 32000, -32000, &stats);
+            const end = std.time.nanoTimestamp();
+            const elapsed = @divFloor(end-start, 1_000_000_000);
+            const total_evals: i64 = @intCast(stats.evals[ 0]);
+            const per_eval = @divFloor(end-start, total_evals);
             const move = minmax.move orelse unreachable;
             const score = minmax.score;
             prev_board = board;
@@ -174,36 +203,49 @@ pub fn loop() !void {
             print_board(&board, &highlight);
             print("{s}>{s} play\n", .{green, reset});
             print("evaluated\n", .{});
-            print("  d=4 {d}\n", .{stats[4]});
-            print("  d=5 {d}\n", .{stats[5]});
-            print("  d=6 {d}\n", .{stats[6]});
-            print("  d=7 {d}\n", .{stats[7]});
-            print("  d=8 {d}\n", .{stats[8]});
-            print("  d=9 {d}\n", .{stats[9]});
-            print("  d=10 {d}\n", .{stats[10]});
-            // print("evaluated d=8 {d}\n", .{stats[8]});
-            // print("evaluated d=10 {d}\n", .{stats[10]});
+            print("  d=3  {d:>10}\n", .{stats.evals[ 3]});
+            print("  d=4  {d:>10}\n", .{stats.evals[ 4]});
+            print("  d=5  {d:>10}\n", .{stats.evals[ 5]});
+            print("  d=6  {d:>10}\n", .{stats.evals[ 6]});
+            print("  d=7  {d:>10}\n", .{stats.evals[ 7]});
+            print("  d=8  {d:>10}\n", .{stats.evals[ 8]});
+            print("  d=9  {d:>10}\n", .{stats.evals[ 9]});
+            print("  d=10  {d:>9}\n", .{stats.evals[10]});
+            print("  d=11  {d:>9}\n", .{stats.evals[11]});
+            // print("  d=12  {d:>10}\n", .{stats.evals[12]});
+            // print("  d=13  {d:>10}\n", .{stats.evals[13]});
+            // print("  d=14  {d:>10}\n", .{stats.evals[14]});
+            // print("  d=15  {d:>10}\n", .{stats.evals[15]});
+            print("total  {d:.1}M\n", .{@as(f32, @floatFromInt(stats.evals[ 0])) / 1_000_000.0});
+            print("took {d} seconds\n", .{elapsed});
+            print("{d} ns / eval\n", .{per_eval});
             print("minmax {s} {d}\n", .{move.notation(), score});
+            // print("eval path {d}\n", .{stats.history.len});
+            // var i: usize = 0;
+            // while (i<stats.history.len) : (i+=2) {
+            //     print("  {s}, ", .{stats.history.data[i].notation()});
+            //     print("{s} \n", .{stats.history.data[i+1].notation()});
+            // }
             continue;
         }
 
-        // Autoplay loop.
-        if (std.mem.eql(u8, buffer[0..8], "autoplay")) {
-            for (0..100) |_| {
-                var stats: Stats = .{0} ** 16;
-                const minmax = board.minmax(0, 4, 7, 32000, -32000, &stats);
-                const move = minmax.move orelse break;
-                prev_board = board;
-                board = board.fork_with_move(move);
-                highlight.reset();
-                highlight.add(move.orig);
-                highlight.add(move.dest);
-                try clear();
-                print_board(&board, &highlight);
-                std.time.sleep(500_000_000);
-            }
-            continue;
-        }
+        // // Autoplay loop.
+        // if (std.mem.eql(u8, buffer[0..8], "autoplay")) {
+        //     for (0..100) |_| {
+        //         var stats: Stats = .{0} ** 16;
+        //         const minmax = board.minmax(0, 4, 7, 32000, -32000, &stats);
+        //         const move = minmax.move orelse break;
+        //         prev_board = board;
+        //         board = board.fork_with_move(move);
+        //         highlight.reset();
+        //         highlight.add(move.orig);
+        //         highlight.add(move.dest);
+        //         try clear();
+        //         print_board(&board, &highlight);
+        //         std.time.sleep(500_000_000);
+        //     }
+        //     continue;
+        // }
 
         // Select.
         if (input_len == 3) {
@@ -254,9 +296,7 @@ pub fn loop() !void {
             continue;
         }
 
-        else {
-            print("command not found\n", .{});
-        }
+        print("command not found\n", .{});
     }
 }
 

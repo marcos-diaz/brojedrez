@@ -1,4 +1,5 @@
 const std = @import("std");
+const print = std.debug.print;
 const BoardMask = @import("boardmask.zig").BoardMask;
 const tables = @import("tables.zig");
 const terminal = @import("terminal.zig");
@@ -7,7 +8,10 @@ const Move = @import("pos.zig").Move;
 const MoveList = @import("pos.zig").MoveList;
 const MoveAndScore = @import("pos.zig").MoveAndScore;
 
-pub const Stats = [16]u32;
+pub const Stats = struct {
+    evals: [16]u32 = .{0} ** 16,
+    history: MoveList = MoveList{},
+};
 
 pub const Player = enum {
     PLAYER1,
@@ -51,6 +55,58 @@ pub const Board = struct {
         return board;
     }
 
+    pub fn load_from_string(
+        self: *Board,
+        str: *const [64]u8,
+    ) void {
+        for(0..64) |i| {
+            const pos = Pos.from_int(@intCast(i)).reverse();
+            const char = str[i];
+            const piece = switch(char) {
+                'p' => Piece.PAWN1,
+                'r' => Piece.ROOK1,
+                'h' => Piece.KNIG1,
+                'b' => Piece.BISH1,
+                'q' => Piece.QUEN1,
+                'k' => Piece.KING1,
+                'P' => Piece.PAWN2,
+                'R' => Piece.ROOK2,
+                'H' => Piece.KNIG2,
+                'B' => Piece.BISH2,
+                'Q' => Piece.QUEN2,
+                'K' => Piece.KING2,
+                else => Piece.NONE,
+            };
+            self.add(pos, piece);
+        }
+    }
+
+    pub fn save_to_string(
+        self: *Board,
+    ) [64]u8 {
+        var str: [64]u8 = undefined;
+        for(0..64) |i| {
+            const pos = Pos.from_int(@intCast(i)).reverse();
+            const piece = self.get(pos);
+            str[i] = switch(piece) {
+                Piece.PAWN1 => 'p',
+                Piece.ROOK1 => 'r',
+                Piece.KNIG1 => 'h',
+                Piece.BISH1 => 'b',
+                Piece.QUEN1 => 'q',
+                Piece.KING1 => 'k',
+                Piece.PAWN2 => 'P',
+                Piece.ROOK2 => 'R',
+                Piece.KNIG2 => 'H',
+                Piece.BISH2 => 'B',
+                Piece.QUEN2 => 'Q',
+                Piece.KING2 => 'K',
+                Piece.NONE  => '-',
+            };
+        }
+        return str;
+    }
+
     pub fn clone(
         self: *Board,
     ) Board {
@@ -77,37 +133,40 @@ pub const Board = struct {
     pub fn reset(
         self: *Board,
     ) void {
-        self.turn = Player.PLAYER1;
-        self.p1_pawns = BoardMask{.mask=0b11111111 << 8};
-        self.p1_rooks = BoardMask{.mask=0b10000001};
-        self.p1_knigs = BoardMask{.mask=0b01000010};
-        self.p1_bishs = BoardMask{.mask=0b00100100};
-        self.p1_quens = BoardMask{.mask=0b00010000};
-        self.p1_kings = BoardMask{.mask=0b00001000};
-        self.p2_pawns = BoardMask{.mask=0b11111111 << 48};
-        self.p2_rooks = BoardMask{.mask=0b10000001 << 56};
-        self.p2_knigs = BoardMask{.mask=0b01000010 << 56};
-        self.p2_bishs = BoardMask{.mask=0b00100100 << 56};
-        self.p2_quens = BoardMask{.mask=0b00010000 << 56};
-        self.p2_kings = BoardMask{.mask=0b00001000 << 56};
+        self.load_from_string(
+            "RHBQKBHR" ++
+            "PPPPPPPP" ++
+            "--------" ++
+            "--------" ++
+            "--------" ++
+            "--------" ++
+            "pppppppp" ++
+            "rhbqkbhr"
+        );
+        self.update_n_pieces();
     }
 
     pub fn setup(
         self: *Board,
     ) void {
-        self.turn = Player.PLAYER1;
-        self.p2_pawns = BoardMask{.mask=0b00000000_10000000_01000000_00001000_00011000_00000000_00000000_00000000};
-        self.p2_rooks = BoardMask{.mask=0b00000000_00000000_00000000_00000000_00000000_00000000_00000000_00000000};
-        self.p2_knigs = BoardMask{.mask=0b00000000_00000000_00000000_00000000_00000000_00000000_00000000_00000000};
-        self.p2_bishs = BoardMask{.mask=0b00001000_00000000_00000000_00000000_00000000_00000000_00000000_00000000};
-        self.p2_quens = BoardMask{.mask=0b00000000_00000000_00000000_00000000_00000000_00000000_00000000_00000000};
-        self.p2_kings = BoardMask{.mask=0b00010000_00000000_00000000_00000000_00000000_00000000_00000000_00000000};
-        self.p1_pawns = BoardMask{.mask=0b00000000_00000000_00000000_00000001_10000000_00001000_00000100_00000000};
-        self.p1_rooks = BoardMask{.mask=0b00000000_00000000_00000000_00000000_00000000_00000000_00000000_00000000};
-        self.p1_knigs = BoardMask{.mask=0b00000000_00000000_00000010_00000000_00000000_00000000_00000000_00000000};
-        self.p1_bishs = BoardMask{.mask=0b00000000_00000000_00000000_00000000_00000000_00000000_00000000_00000000};
-        self.p1_quens = BoardMask{.mask=0b00000000_00000000_00000000_00000000_00000000_00000000_00000000_00000000};
-        self.p1_kings = BoardMask{.mask=0b00000000_00000000_00000000_00000000_00000000_00000000_00100000_00000000};
+        self.load_from_string(
+            "R--QKBHR" ++
+            "P-P-P-PP" ++
+            "--------" ++
+            "qh--h---" ++
+            "--BpP---" ++
+            "--------" ++
+            "pp---ppp" ++
+            "H-bk---r"
+        );
+        self.update_n_pieces();
+    }
+
+    pub fn update_n_pieces(
+        self: *Board,
+    ) void {
+        var mask = self.get_all_mask();
+        self.n_pieces = mask.count();
     }
 
     pub fn get(
@@ -178,12 +237,12 @@ pub const Board = struct {
         move: Move,
     ) void {
         const piece = self.get(move.orig);
-        var mask = self.get_mask_all();
-        const captured = mask.has(move.dest);
+        var opp_mask = self.get_opp_mask();
+        const captured = opp_mask.has(move.dest);
         if (captured) self.n_pieces -= 1;
         const pawn_walk = self.n_pieces < 12 and (piece==Piece.PAWN1 or piece==Piece.PAWN2);
         self.is_contested = (
-            (captured == true) or
+            captured or
             self.is_check_on_opp() or
             pawn_walk
             // piece==Piece.PAWN1 or
@@ -193,7 +252,6 @@ pub const Board = struct {
         self.remove(move.orig);
         self.remove(move.dest);
         self.add(move.dest, piece);
-        self.switch_turn();
         if (piece == Piece.PAWN1 and move.dest.row() == 7) {
             self.remove(move.dest);
             self.add(move.dest, Piece.QUEN1);
@@ -202,6 +260,7 @@ pub const Board = struct {
             self.remove(move.dest);
             self.add(move.dest, Piece.QUEN2);
         }
+        self.switch_turn();
     }
 
     pub fn get_p1_mask(
@@ -232,7 +291,21 @@ pub const Board = struct {
         return BoardMask{.mask=mask};
     }
 
-    pub fn get_mask_all(
+    pub fn get_own_mask(
+        self: *Board,
+    ) BoardMask {
+        if (self.turn == Player.PLAYER1) return self.get_p1_mask();
+        return self.get_p2_mask();
+    }
+
+    pub fn get_opp_mask(
+        self: *Board,
+    ) BoardMask {
+        if (self.turn == Player.PLAYER1) return self.get_p2_mask();
+        return self.get_p1_mask();
+    }
+
+    pub fn get_all_mask(
         self: *Board,
     ) BoardMask {
         const mask = self.get_p1_mask().mask | self.get_p2_mask().mask;
@@ -269,7 +342,7 @@ pub const Board = struct {
         // Advance.
         const advance_table = if (flip) tables.pawn_moves_p2 else tables.pawn_moves_p1;
         var moves = advance_table[pos.index];
-        var all_mask = self.get_mask_all();
+        var all_mask = self.get_all_mask();
         all_mask.remove(pos);
         var all_mask_shadow = (
             if (flip) BoardMask{.mask=((all_mask.mask << 16 ) >> 24)}
@@ -381,29 +454,41 @@ pub const Board = struct {
         allow_check: bool,
     ) MoveList {
         var movelist = MoveList{};
-        var mask = (
-            if (self.turn == Player.PLAYER1) self.get_p1_mask()
-            else self.get_p2_mask()
-        );
-        for(0..mask.count()) |_| {
-            const orig = mask.next();
+        var own_mask = self.get_own_mask();
+        for(0..own_mask.count()) |_| {
+            const orig = own_mask.next();
             var moves = self.get_legal_moves_for_pos(orig);
             for(0..moves.count()) |_| {
                 const dest = moves.next();
-                const next_move = Move{.orig=orig, .dest=dest};
+                const move = Move{.orig=orig, .dest=dest};
                 if (allow_check) {
-                    movelist.add(next_move);
+                    movelist.add(move);
                 } else {
                     // Exclude moves that expose king.
-                    var fork = self.fork_with_move(next_move);
+                    var fork = self.fork_with_move(move);
                     if (!fork.is_check_on_opp()) {
-                        movelist.add(next_move);
+                        movelist.add(move);
                     }
                 }
             }
         }
         return movelist;
     }
+
+    // pub fn get_capture_moves(
+    //     self: *Board,
+    // ) MoveList {
+    //     const legal = self.get_legal_moves(false);
+    //     var opp_mask = self.get_opp_mask();
+    //     var captures = MoveList{};
+    //     for (0..legal.len) |i| {
+    //         const move = legal.data[i];
+    //         if (opp_mask.has(move.dest)) {
+    //             captures.add(move);
+    //         }
+    //     }
+    //     return captures;
+    // }
 
     pub fn fork_with_move(
         self: *Board,
@@ -526,7 +611,10 @@ pub const Board = struct {
         // Calculate score on leafs.
         if (depth == depth_target + depth_extra) {
             const score = self.get_score();
-            stats.*[depth] += 1;
+            stats.*.evals[0] += 1;
+            stats.*.evals[depth] += 1;
+            // terminal.indent(depth);
+            // print("{d}\n", .{score});
             return MoveAndScore{.move=null, .score=score};
         // Explore branches.
         } else {
@@ -536,8 +624,16 @@ pub const Board = struct {
             var new_best_min = best_min;
             var new_best_max = best_max;
             const legal = self.get_legal_moves(false);
+            // Draw by stalemate.
+            if (legal.len == 0 and !self.is_check_on_own()) {
+                best.score = 0;
+                return best;
+            }
+            // Iterate moves.
             for (0..legal.len) |i| {
                 const move = legal.data[i];
+                // terminal.indent(depth);
+                // print("{s}\n", .{move.notation()});
                 // Prune.
                 if (best_min <= best_max) {
                     best.score = if (self.turn==Player.PLAYER1) best_max-1 else best_min+1;
@@ -562,15 +658,19 @@ pub const Board = struct {
                     best.move = move;
                     best.score = candidate.score;
                     best.score_defined = true;
+
+                    // if (stats.history.len < depth+1) {
+                    //     stats.history.add(move);
+                    // } else {
+                    //     stats.history.data[depth] = move;
+                    // }
+
                     if (self.turn == Player.PLAYER1) {
                         new_best_max = candidate.score;
                     } else {
                         new_best_min = candidate.score;
                     }
                 }
-            }
-            if (legal.len == 0 and !self.is_check_on_own()) {
-                best.score = 0;  // Draw by stalemate.
             }
             return best;
         }
