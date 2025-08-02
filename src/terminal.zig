@@ -97,11 +97,11 @@ pub fn loop() !void {
     var board = Board.init();
     var prev_board = Board.init();
     try clear();
-    var selected: Pos = undefined;
+    // var selected: Pos = undefined;
     var has_selected = false;
     var highlight = BoardMask{.mask=0};
     print_board(&board, &highlight);
-    var buffer: [16]u8 = undefined;
+    var buffer: [128]u8 = undefined;
 
     while(true) {
         print("{s}>{s} ", .{green, reset});
@@ -128,7 +128,10 @@ pub fn loop() !void {
             continue;
         }
 
-        if (std.mem.eql(u8, buffer[0..4], "undo")) {
+        if (
+            std.mem.eql(u8, buffer[0..4], "undo") or
+            std.mem.eql(u8, buffer[0..1], "u")
+        ) {
             board = prev_board;
             try clear();
             print_board(&board, &highlight);
@@ -167,7 +170,7 @@ pub fn loop() !void {
             continue;
         }
 
-        if (std.mem.eql(u8, buffer[0..4], "dump")) {
+        if (std.mem.eql(u8, buffer[0..8], "dumpcode")) {
             const str = board.save_to_string();
             print("\"{s}\" ++\n", .{str[8*0..1*8]});
             print("\"{s}\" ++\n", .{str[8*1..2*8]});
@@ -180,6 +183,21 @@ pub fn loop() !void {
             continue;
         }
 
+        if (std.mem.eql(u8, buffer[0..4], "dump")) {
+            const str = board.save_to_string();
+            print("{s}\n", .{str});
+            continue;
+        }
+
+        if (std.mem.eql(u8, buffer[0..4], "load")) {
+            const str = buffer[5..69];
+            board.load_from_string(str);
+            board.switch_turn();
+            try clear();
+            print_board(&board, &highlight);
+            continue;
+        }
+
         // Autoplay once.
         if (
             (input_len == 5 and (std.mem.eql(u8, buffer[0..4], "play"))) or
@@ -187,7 +205,7 @@ pub fn loop() !void {
         ) {
             var stats = Stats{};
             const start = std.time.nanoTimestamp();
-            const minmax = board.minmax(0, 3, 7, 32000, -32000, &stats);
+            const minmax = board.minmax(0, 32000, -32000, &stats);
             const end = std.time.nanoTimestamp();
             const elapsed = @divFloor(end-start, 1_000_000_000);
             const total_evals: i64 = @intCast(stats.evals[ 0]);
@@ -247,26 +265,26 @@ pub fn loop() !void {
         //     continue;
         // }
 
-        // Select.
-        if (input_len == 3) {
-            const pos = Pos.from_notation(buffer[0], buffer[1]);
-            selected = pos;
-            has_selected = true;
-            highlight = board.get_moves_for_pos(pos);
-            try clear();
-            print_board(&board, &highlight);
-            print("{s}>{s} {s}\n", .{green, reset, selected.notation()});
-            print("Selected: {s}\n", .{selected.notation()});
-            print("Available moves: ", .{});
-            for(0..64) |_pos| {
-                const hpos = Pos.from_int(@intCast(63 - _pos));
-                if (highlight.has(hpos)) {
-                    print("{s}, ", .{hpos.notation()});
-                }
-            }
-            print("\n", .{});
-            continue;
-        }
+        // // Select.
+        // if (input_len == 3) {
+        //     const pos = Pos.from_notation(buffer[0], buffer[1]);
+        //     selected = pos;
+        //     has_selected = true;
+        //     highlight = board.get_moves_for_pos(pos);
+        //     try clear();
+        //     print_board(&board, &highlight);
+        //     print("{s}>{s} {s}\n", .{green, reset, selected.notation()});
+        //     print("Selected: {s}\n", .{selected.notation()});
+        //     print("Available moves: ", .{});
+        //     for(0..64) |_pos| {
+        //         const hpos = Pos.from_int(@intCast(63 - _pos));
+        //         if (highlight.has(hpos)) {
+        //             print("{s}, ", .{hpos.notation()});
+        //         }
+        //     }
+        //     print("\n", .{});
+        //     continue;
+        // }
 
         // Move.
         if(
@@ -280,7 +298,7 @@ pub fn loop() !void {
                 dest = Pos.from_notation(buffer[2], buffer[3]);
             }
             if (input_len == 4) {
-                orig = selected;
+                // orig = selected;
                 dest = Pos.from_notation(buffer[1], buffer[2]);
             }
             prev_board = board;
@@ -313,6 +331,34 @@ pub fn loop() !void {
                     'K' => {if (piece==Piece.KING1 or piece==Piece.KING2) orig_ = move.orig;},
                     else => {},
                 }
+            }
+            if (orig_) |orig| {
+                prev_board = board;
+                board = board.fork_with_move(Move{.orig=orig, .dest=dest});
+                highlight.reset();
+                highlight.add(orig);
+                highlight.add(dest);
+                has_selected = false;
+                try clear();
+                print_board(&board, &highlight);
+                print("{s}>{s} {s}{s}\n", .{green, reset, orig.notation(), dest.notation()});
+            } else {
+                print("notation error\n", .{});
+            }
+            continue;
+        }
+
+        // Move easy notation even easier.
+        if(input_len == 3) {
+            var orig_: ?Pos = null;
+            const dest = Pos.from_notation(buffer[0], buffer[1]);
+            const legal = board.get_legal_moves();
+            for(0..legal.len) |i| {
+                const move = legal.data[i];
+                // print("{s}\n", .{move.notation()});
+                if (move.dest.index != dest.index) continue;
+                orig_ = move.orig;
+                break;
             }
             if (orig_) |orig| {
                 prev_board = board;
