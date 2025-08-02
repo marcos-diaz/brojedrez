@@ -136,7 +136,7 @@ pub fn loop() !void {
         }
 
         if (std.mem.eql(u8, buffer[0..5], "legal")) {
-            const legal = board.get_legal_moves(false);
+            const legal = board.get_legal_moves();
             for (0..legal.len) |i| {
                 const move = legal.data[i];
                 print("{s}, ", .{ move.notation() });
@@ -146,7 +146,7 @@ pub fn loop() !void {
         }
 
         // if (std.mem.eql(u8, buffer[0..5], "capture")) {
-        //     const legal = board.get_legal_moves(false);
+        //     const legal = board.get_legal_moves();
         //     for (0..legal.len) |i| {
         //         const move = legal.data[i];
         //         print("{s}, ", .{ move.notation() });
@@ -185,9 +185,9 @@ pub fn loop() !void {
             (input_len == 5 and (std.mem.eql(u8, buffer[0..4], "play"))) or
             (input_len == 2 and buffer[0] == 'p')
         ) {
-            var stats = Stats{.evals=.{0}**16};
+            var stats = Stats{};
             const start = std.time.nanoTimestamp();
-            const minmax = board.minmax(0, 4, 10, 32000, -32000, &stats);
+            const minmax = board.minmax(0, 3, 7, 32000, -32000, &stats);
             const end = std.time.nanoTimestamp();
             const elapsed = @divFloor(end-start, 1_000_000_000);
             const total_evals: i64 = @intCast(stats.evals[ 0]);
@@ -216,8 +216,8 @@ pub fn loop() !void {
             // print("  d=13  {d:>10}\n", .{stats.evals[13]});
             // print("  d=14  {d:>10}\n", .{stats.evals[14]});
             // print("  d=15  {d:>10}\n", .{stats.evals[15]});
-            print("total  {d:.1}M\n", .{@as(f32, @floatFromInt(stats.evals[ 0])) / 1_000_000.0});
-            print("took {d} seconds\n", .{elapsed});
+            const total = @as(f32, @floatFromInt(stats.evals[ 0])) / 1_000_000.0;
+            print("{d:.1}M in {d} seconds\n", .{total, elapsed});
             print("{d} ns / eval\n", .{per_eval});
             print("minmax {s} {d}\n", .{move.notation(), score});
             // print("eval path {d}\n", .{stats.history.len});
