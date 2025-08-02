@@ -252,7 +252,7 @@ pub fn loop() !void {
             const pos = Pos.from_notation(buffer[0], buffer[1]);
             selected = pos;
             has_selected = true;
-            highlight = board.get_legal_moves_for_pos(pos);
+            highlight = board.get_moves_for_pos(pos);
             try clear();
             print_board(&board, &highlight);
             print("{s}>{s} {s}\n", .{green, reset, selected.notation()});

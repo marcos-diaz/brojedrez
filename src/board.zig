@@ -232,7 +232,7 @@ pub const Board = struct {
         }
     }
 
-    pub fn do_move(
+    pub fn move_to(
         self: *Board,
         move: Move,
     ) void {
@@ -312,29 +312,29 @@ pub const Board = struct {
         return BoardMask{.mask=mask};
     }
 
-    pub fn get_legal_moves_for_pos(
+    pub fn get_moves_for_pos(
         self: *Board,
         pos: Pos,
     ) BoardMask {
         const piece = self.get(pos);
         switch (piece) {
-            Piece.PAWN1 => return self.get_legal_moves_pawn(pos, false),
-            Piece.PAWN2 => return self.get_legal_moves_pawn(pos, true),
-            Piece.KING1 => return self.get_legal_moves_king(pos, false),
-            Piece.KING2 => return self.get_legal_moves_king(pos, true),
-            Piece.KNIG1 => return self.get_legal_moves_knight(pos, false),
-            Piece.KNIG2 => return self.get_legal_moves_knight(pos, true),
-            Piece.ROOK1 => return self.get_legal_moves_rook(pos, false),
-            Piece.ROOK2 => return self.get_legal_moves_rook(pos, true),
-            Piece.BISH1 => return self.get_legal_moves_bishop(pos, false),
-            Piece.BISH2 => return self.get_legal_moves_bishop(pos, true),
-            Piece.QUEN1 => return self.get_legal_moves_queen(pos, false),
-            Piece.QUEN2 => return self.get_legal_moves_queen(pos, true),
+            Piece.PAWN1 => return self.get_moves_pawn(pos, false),
+            Piece.PAWN2 => return self.get_moves_pawn(pos, true),
+            Piece.KING1 => return self.get_moves_king(pos, false),
+            Piece.KING2 => return self.get_moves_king(pos, true),
+            Piece.KNIG1 => return self.get_moves_knight(pos, false),
+            Piece.KNIG2 => return self.get_moves_knight(pos, true),
+            Piece.ROOK1 => return self.get_moves_rook(pos, false),
+            Piece.ROOK2 => return self.get_moves_rook(pos, true),
+            Piece.BISH1 => return self.get_moves_bishop(pos, false),
+            Piece.BISH2 => return self.get_moves_bishop(pos, true),
+            Piece.QUEN1 => return self.get_moves_queen(pos, false),
+            Piece.QUEN2 => return self.get_moves_queen(pos, true),
             Piece.NONE => return BoardMask{},
         }
     }
 
-    pub fn get_legal_moves_pawn(
+    pub fn get_moves_pawn(
         self: *Board,
         pos: Pos,
         flip: bool,
@@ -360,7 +360,7 @@ pub const Board = struct {
         return moves;
     }
 
-    pub fn get_legal_moves_king(
+    pub fn get_moves_king(
         self: *Board,
         pos: Pos,
         flip: bool,
@@ -371,7 +371,7 @@ pub const Board = struct {
         return moves;
     }
 
-    pub fn get_legal_moves_knight(
+    pub fn get_moves_knight(
         self: *Board,
         pos: Pos,
         flip: bool,
@@ -382,7 +382,7 @@ pub const Board = struct {
         return moves;
     }
 
-    pub fn get_legal_moves_rook(
+    pub fn get_moves_rook(
         self: *Board,
         pos: Pos,
         flip: bool,
@@ -407,7 +407,7 @@ pub const Board = struct {
         return moves;
     }
 
-    pub fn get_legal_moves_bishop(
+    pub fn get_moves_bishop(
         self: *Board,
         pos: Pos,
         flip: bool,
@@ -439,13 +439,13 @@ pub const Board = struct {
         return moves;
     }
 
-    pub fn get_legal_moves_queen(
+    pub fn get_moves_queen(
         self: *Board,
         pos: Pos,
         flip: bool,
     ) BoardMask {
-        const cardinal = self.get_legal_moves_rook(pos, flip);
-        const diagonal = self.get_legal_moves_bishop(pos, flip);
+        const cardinal = self.get_moves_rook(pos, flip);
+        const diagonal = self.get_moves_bishop(pos, flip);
         return BoardMask{.mask=cardinal.mask | diagonal.mask};
     }
 
@@ -457,7 +457,7 @@ pub const Board = struct {
         var own_mask = self.get_own_mask();
         for(0..own_mask.count()) |_| {
             const orig = own_mask.next();
-            var moves = self.get_legal_moves_for_pos(orig);
+            var moves = self.get_moves_for_pos(orig);
             for(0..moves.count()) |_| {
                 const dest = moves.next();
                 const move = Move{.orig=orig, .dest=dest};
@@ -495,7 +495,7 @@ pub const Board = struct {
         move: Move,
     ) Board {
         var board = self.clone();
-        board.do_move(move);
+        board.move_to(move);
         return board;
     }
 
