@@ -292,7 +292,41 @@ pub fn loop() !void {
             try clear();
             print_board(&board, &highlight);
             print("{s}>{s} {s}{s}\n", .{green, reset, orig.notation(), dest.notation()});
-            // if (captured) print("CAPTURED\n", .{});
+            continue;
+        }
+
+        // Move easy notation.
+        if(input_len == 4) {
+            var orig_: ?Pos = null;
+            const dest = Pos.from_notation(buffer[1], buffer[2]);
+            const legal = board.get_legal_moves();
+            for(0..legal.len) |i| {
+                const move = legal.data[i];
+                if (move.dest.index != dest.index) continue;
+                const piece = board.get(move.orig);
+                switch (buffer[0]) {
+                    'p' => {if (piece==Piece.PAWN1 or piece==Piece.PAWN2) orig_ = move.orig;},
+                    'r' => {if (piece==Piece.ROOK1 or piece==Piece.ROOK2) orig_ = move.orig;},
+                    'k' => {if (piece==Piece.KNIG1 or piece==Piece.KNIG2) orig_ = move.orig;},
+                    'b' => {if (piece==Piece.BISH1 or piece==Piece.BISH2) orig_ = move.orig;},
+                    'q' => {if (piece==Piece.QUEN1 or piece==Piece.QUEN2) orig_ = move.orig;},
+                    'K' => {if (piece==Piece.KING1 or piece==Piece.KING2) orig_ = move.orig;},
+                    else => {},
+                }
+            }
+            if (orig_) |orig| {
+                prev_board = board;
+                board = board.fork_with_move(Move{.orig=orig, .dest=dest});
+                highlight.reset();
+                highlight.add(orig);
+                highlight.add(dest);
+                has_selected = false;
+                try clear();
+                print_board(&board, &highlight);
+                print("{s}>{s} {s}{s}\n", .{green, reset, orig.notation(), dest.notation()});
+            } else {
+                print("notation error\n", .{});
+            }
             continue;
         }
 
