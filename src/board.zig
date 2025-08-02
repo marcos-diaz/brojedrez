@@ -174,14 +174,14 @@ pub const Board = struct {
         self: *Board,
     ) void {
         self.load_from_string(
-            "R------R" ++
-            "PP------" ++
-            "---Bq-KP" ++
-            "---P---r" ++
-            "-HPp----" ++
-            "--Q-pk-h" ++
-            "-----p--" ++
-            "-----b--"
+            "RHB-KBHR" ++
+            "P-P-PPPP" ++
+            "--------" ++
+            "-hQp----" ++
+            "q-P-----" ++
+            "----p---" ++
+            "pp---ppp" ++
+            "r-b-kbhr"
         );
     }
 
@@ -512,30 +512,13 @@ pub const Board = struct {
             for(0..moves.count()) |_| {
                 const dest = moves.next();
                 const move = Move{.orig=orig, .dest=dest};
-                // Exclude moves that expose own king.
                 var fork = self.fork_with_move(move);
-                if (!fork.is_check_on_opp()) {
-                    movelist.add(move);
-                }
+                if (fork.is_check_on_opp()) continue; // Exclude moves exposing own king.
+                movelist.add(move);
             }
         }
         return movelist;
     }
-
-    // pub fn get_capture_moves(
-    //     self: *Board,
-    // ) MoveList {
-    //     const legal = self.get_legal_moves();
-    //     var opp_mask = self.get_opp_mask();
-    //     var captures = MoveList{};
-    //     for (0..legal.len) |i| {
-    //         const move = legal.data[i];
-    //         if (opp_mask.has(move.dest)) {
-    //             captures.add(move);
-    //         }
-    //     }
-    //     return captures;
-    // }
 
     pub fn fork_with_move(
         self: *Board,
@@ -564,6 +547,18 @@ pub const Board = struct {
         const moves_h = tables.knight_moves[king_pos.index];
         const location_h = if (p2) self.p1_knigs else self.p2_knigs;
         if (moves_h.mask & location_h.mask > 0) return true;
+        // Check by queen.
+        const moves_q = self.get_moves_queen(king_pos, p2);
+        const location_q = if (p2) self.p1_quens else self.p2_quens;
+        if (moves_q.mask & location_q.mask > 0) return true;
+        // Check by bishop.
+        const moves_b = self.get_moves_bishop(king_pos, p2);
+        const location_b = if (p2) self.p1_bishs else self.p2_bishs;
+        if (moves_b.mask & location_b.mask > 0) return true;
+        // Check by rook.
+        const moves_r = self.get_moves_rook(king_pos, p2);
+        const location_r = if (p2) self.p1_rooks else self.p2_rooks;
+        if (moves_r.mask & location_r.mask > 0) return true;
         // Check by pawn.
         const moves_p = (
             if (p2) tables.pawn_captures_p2[king_pos.index]
@@ -571,18 +566,6 @@ pub const Board = struct {
         );
         const location_p = if (p2) self.p1_pawns else self.p2_pawns;
         if (moves_p.mask & location_p.mask > 0) return true;
-        // Check by rook.
-        const moves_r = self.get_moves_rook(king_pos, p2);
-        const location_r = if (p2) self.p1_rooks else self.p2_rooks;
-        if (moves_r.mask & location_r.mask > 0) return true;
-        // Check by bishop.
-        const moves_b = self.get_moves_bishop(king_pos, p2);
-        const location_b = if (p2) self.p1_bishs else self.p2_bishs;
-        if (moves_b.mask & location_b.mask > 0) return true;
-        // Check by queen.
-        const moves_q = self.get_moves_queen(king_pos, p2);
-        const location_q = if (p2) self.p1_quens else self.p2_quens;
-        if (moves_q.mask & location_q.mask > 0) return true;
         // Check by king. (Necessary to filter illegal moves).
         const moves_k = self.get_moves_king(king_pos, p2);
         const location_k = if (p2) self.p1_kings else self.p2_kings;
@@ -604,36 +587,6 @@ pub const Board = struct {
         const p2 = self.turn == Player.PLAYER2;
         return self.is_check(!p2);
     }
-
-    // pub fn is_check_on_opp(
-    //     self: *Board,
-    // ) bool {
-    //     const moves = self.get_legal_moves(true);
-    //     const opp_king_pos = self.get_king_pos(if (self.turn==Player.PLAYER1) true else false);
-    //     for (0..moves.len) |i| {
-    //         const move = moves.data[i];
-    //         if (move.dest.index == opp_king_pos.index) {
-    //             return true;
-    //         }
-    //     }
-    //     return false;
-    // }
-
-    // pub fn is_check_on_own(
-    //     self: *Board,
-    // ) bool {
-    //     var board = self.clone();
-    //     board.switch_turn();
-    //     const moves = board.get_legal_moves();
-    //     const own_king_pos = self.get_king_pos(if (self.turn==Player.PLAYER1) false else true);
-    //     for (0..moves.len) |i| {
-    //         const move = moves.data[i];
-    //         if (move.dest.index == own_king_pos.index) {
-    //             return true;
-    //         }
-    //     }
-    //     return false;
-    // }
 
     pub fn get_king_pos(
         self: *Board,
@@ -694,17 +647,20 @@ pub const Board = struct {
     pub fn minmax(
         self: *Board,
         depth: u4,
-        depth_brute: u4,
-        depth_hot: u4,
         best_min: i16,
         best_max: i16,
         stats: *Stats,
     ) MoveAndScore {
-        const is_hot = self.last_p1_move_hot or self.last_p2_move_hot;
-        // const is_superhot = self.last_p1_move_hot and self.last_p2_move_hot;
-
+        const p1 = self.turn == Player.PLAYER1;
+        const opp_cold = if (p1) !self.last_p2_move_hot else !self.last_p1_move_hot;
+        const all_cold = !self.last_p1_move_hot and !self.last_p2_move_hot;
+        const is_leaf = (
+            (depth == DEPTH_MAX) or
+            (depth >= DEPTH_HOT and opp_cold) or
+            (depth >= DEPTH_COLD and all_cold)
+        );
         // Calculate score on leafs.
-        if ((depth == depth_hot) or (depth > depth_brute and !is_hot)) {
+        if (is_leaf) {
             const score = self.get_score();
             stats.*.evals[0] += 1;
             stats.*.evals[depth] += 1;
@@ -738,8 +694,6 @@ pub const Board = struct {
                 var fork = self.fork_with_move(move);
                 const candidate = fork.minmax(
                     depth+1,
-                    depth_brute,
-                    depth_hot,
                     new_best_min,
                     new_best_max,
                     stats,
@@ -753,13 +707,6 @@ pub const Board = struct {
                     best.move = move;
                     best.score = candidate.score;
                     best.score_defined = true;
-
-                    // if (stats.history.len < depth+1) {
-                    //     stats.history.add(move);
-                    // } else {
-                    //     stats.history.data[depth] = move;
-                    // }
-
                     if (self.turn == Player.PLAYER1) {
                         new_best_max = candidate.score;
                     } else {
@@ -771,3 +718,7 @@ pub const Board = struct {
         }
     }
 };
+
+const DEPTH_COLD = 5;
+const DEPTH_HOT = 7;
+const DEPTH_MAX = 9;
