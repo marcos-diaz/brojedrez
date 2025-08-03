@@ -34,6 +34,43 @@ pub fn build(b: *std.Build) void {
     b.installArtifact(exe);
     b.installArtifact(wasm);
 
+
+    //////////////////
+    // POST-COMPILE //
+    //////////////////
+
+    const post = b.step("post-compile", "Run post-build shell command");
+    post.dependOn(&wasm.step);
+    post.makeFn = struct {
+        pub fn make(_: *std.Build.Step, _: std.Build.Step.MakeOptions) !void {
+            const allocator = std.heap.page_allocator;
+            var child = std.process.Child.init(
+                &[_][]const u8{
+                    "sh",
+                    "-c",
+                    "cp zig-out/bin/brojedrez.wasm ../gui/public/brojedrez.wasm",
+                },
+                allocator,
+            );
+            child.stdout_behavior = .Pipe;
+            child.stderr_behavior = .Inherit;
+            child.stdin_behavior = .Inherit;
+            try child.spawn();
+            const stdout = try child.stdout.?.reader().readAllAlloc(allocator, 1024);
+            try std.io.getStdOut().writer().writeAll(stdout);
+            const term = try child.wait();
+            if (term != .Exited or term.Exited != 0) {
+                return error.UnexpectedExitCode;
+            }
+        }
+    }.make;
+    b.getInstallStep().dependOn(post);
+
+
+    /////////
+    // RUN //
+    /////////
+
     // This *creates* a Run step in the build graph, to be executed when another
     // step is evaluated that depends on it. The next line below will establish
     // such a dependency.
@@ -56,6 +93,11 @@ pub fn build(b: *std.Build) void {
     // This will evaluate the `run` step rather than the default, which is "install".
     const run_step = b.step("run", "Run the app");
     run_step.dependOn(&run_cmd.step);
+
+
+    //////////
+    // TEST //
+    //////////
 
     const exe_unit_tests = b.addTest(.{
         .root_module = exe_mod,

@@ -10,3 +10,4 @@ gui/tmp/
 gui/out-tsc/
 gui/bazel-out/
 gui/.sass-cache/
+gui/public/*.wasm
