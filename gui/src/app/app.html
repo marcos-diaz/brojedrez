@@ -1,13 +1,13 @@
 <main class='phone'>
   <div class='ui'>
     <div class='top'>
-      Top
+      Brojedrez engine
     </div>
     <div class='board'>
       <div
         class="cell"
         *ngFor="let i of indexes"
-        [ngClass]='styleDarkCell(i)'
+        [ngClass]='cellStyle(i)'
         >
       </div>
     </div>
