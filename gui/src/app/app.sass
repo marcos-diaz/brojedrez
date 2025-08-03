@@ -1,0 +1,39 @@
+.phone
+    position: absolute
+    transform: translate(-50%, -50%)
+    top: 50%
+    left: 50%
+    width: 100%
+    height: 100%
+    max-width:  calc(100vh * (9 / 14))
+    max-height: calc(100vw * (14 / 9))
+    overflow: hidden
+
+.ui
+    height: 100%
+    display: flex
+    flex-direction: column
+    background-image: url("/wood.jpg")
+    background-color: hsla(0deg, 50%, 2%, 85%)
+    background-blend-mode: overlay
+
+
+.top
+    flex: 1
+
+.bottom
+    flex: 1
+
+.board
+    aspect-ratio: 1/1
+    background-color: blue
+    background-image: url("/wood.jpg")
+    display: grid
+    grid-template-columns: repeat(8, 1fr);
+    grid-template-rows:    repeat(8, 1fr);
+
+
+
+.cell.dark
+    background-color: hsla(0deg, 40%, 15%, 50%)
+    background-blend-mode: overlay
