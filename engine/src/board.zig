@@ -719,6 +719,6 @@ pub const Board = struct {
     }
 };
 
-const DEPTH_COLD = 5;
-const DEPTH_HOT = 7;
-const DEPTH_MAX = 9;
+const DEPTH_COLD = 6;
+const DEPTH_HOT =  6;
+const DEPTH_MAX =  6;

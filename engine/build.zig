@@ -14,11 +14,28 @@ pub fn build(b: *std.Build) void {
         .name = "brojedrez",
         .root_module = exe_mod,
     });
+    b.installArtifact(exe);
+
+
+    /////////////////
+    // WEBASSEMBLY //
+    /////////////////
+
+    const wasm_target = b.resolveTargetQuery(.{
+        .cpu_arch = .wasm32,
+        .os_tag = .freestanding,
+        .cpu_features_add = std.Target.wasm.featureSet(&.{
+            .bulk_memory,
+            .sign_ext,
+            .nontrapping_fptoint,
+            .simd128,
+        }),
+    });
 
     const wasm_mod = b.createModule(.{
         .root_source_file = b.path("src/wasm.zig"),
-        .target = b.resolveTargetQuery(.{.cpu_arch=.wasm32, .os_tag=.freestanding}),
-        .optimize = optimize,
+        .target = wasm_target,
+        .optimize = .ReleaseFast,
     });
 
     const wasm = b.addExecutable(.{
@@ -27,11 +44,13 @@ pub fn build(b: *std.Build) void {
     });
     wasm.rdynamic = true;
     wasm.entry = .disabled;
-
-    // This declares intent for the executable to be installed into the
-    // standard location when the user invokes the "install" step (the default
-    // step when running `zig build`).
-    b.installArtifact(exe);
+    wasm.stack_size = 1024 * 1024;
+    wasm.initial_memory = 64 * 1024 * 1024;
+    wasm.max_memory = 128 * 1024 * 1024;
+    wasm.link_z_notext = true;
+    wasm.root_module.strip = true;
+    wasm.root_module.unwind_tables = .none;
+    wasm.root_module.omit_frame_pointer = true;
     b.installArtifact(wasm);
 
 

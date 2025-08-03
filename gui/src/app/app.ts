@@ -1,6 +1,5 @@
 import { Component, signal } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
-import { NgModule } from '@angular/core';
 import { CommonModule } from '@angular/common';
 
 @Component({
@@ -13,9 +12,19 @@ export class App {
   protected readonly title = signal('chess');
   indexes = Array(64).fill(0).map((_, i) => 63 - i);
   wasm: any = undefined
+  board = signal<Piece[]>([])
+  selected?: number = undefined
+  turn = true
 
   constructor() {
-    this.loadWasm()
+  }
+
+  ngAfterViewInit() {
+    this.loadWasm().then(() => {
+      this.wasm.init()
+    }).then(() => {
+      this.refreshBoard()
+    })
   }
 
   async loadWasm() {
@@ -25,6 +34,15 @@ export class App {
     this.wasm = instance.exports
     console.log('WASM loaded')
     console.log(this.wasm)
+  }
+
+  refreshBoard() {
+    const board = [...this.board()]
+    for(const index of this.indexes) {
+      const piece = this.wasm.get(index)
+      board[index] = piece
+    }
+    this.board.set(board)
   }
 
   cellStyle(index: number): String {
@@ -41,44 +59,51 @@ export class App {
   }
 
   cellStylePiece(index: number): String {
-    if (index == 0)  return 'rook1'
-    if (index == 1)  return 'knight1'
-    if (index == 2)  return 'bishop1'
-    if (index == 3)  return 'king1'
-    if (index == 4)  return 'queen1'
-    if (index == 5)  return 'bishop1'
-    if (index == 6)  return 'knight1'
-    if (index == 7)  return 'rook1'
-    if (index == 8)  return 'pawn1'
-    if (index == 9)  return 'pawn1'
-    if (index == 10) return 'pawn1'
-    if (index == 11) return 'pawn1'
-    if (index == 12) return 'pawn1'
-    if (index == 13) return 'pawn1'
-    if (index == 14) return 'pawn1'
-    if (index == 15) return 'pawn1'
-
-    if (index == 63-0)  return 'rook2'
-    if (index == 63-1)  return 'knight2'
-    if (index == 63-2)  return 'bishop2'
-    if (index == 63-3)  return 'queen2'
-    if (index == 63-4)  return 'king2'
-    if (index == 63-5)  return 'bishop2'
-    if (index == 63-6)  return 'knight2'
-    if (index == 63-7)  return 'rook2'
-    if (index == 63-8)  return 'pawn2'
-    if (index == 63-9)  return 'pawn2'
-    if (index == 63-10) return 'pawn2'
-    if (index == 63-11) return 'pawn2'
-    if (index == 63-12) return 'pawn2'
-    if (index == 63-13) return 'pawn2'
-    if (index == 63-14) return 'pawn2'
-    if (index == 63-15) return 'pawn2'
-    return ''
+    return Piece[this.board()[index]]
   }
 
-  cellOnClick(index: number) {
-    const x = this.wasm.add(index, 100)
-    console.log(`Cell ${x}`)
+  async cellOnClick(index: number) {
+    if (this.turn === false) return
+    if (!this.selected) {
+      this.selected = index
+      console.log('selected', index)
+      return
+    } else {
+      this.turn = false
+      const result = this.wasm.legal_move(this.selected, index)
+      if (result==0) {
+        this.selected = undefined
+        this.refreshBoard()
+        await delay(100)
+        console.log('PROCESSING')
+        const start = Date.now();
+        this.wasm.autoplay()
+        const elapsed = (Date.now() - start) / 1000
+        console.log('DONE', elapsed)
+        this.refreshBoard()
+      }
+      this.turn = true
+      this.selected = undefined;
+    }
   }
+}
+
+enum Piece {
+  NONE,
+  PAWN1,
+  ROOK1,
+  KNIGHT1,
+  BISHOP1,
+  QUEEN1,
+  KING1,
+  PAWN2,
+  ROOK2,
+  KNIGHT2,
+  BISHOP2,
+  QUEEN2,
+  KING2,
+}
+
+function delay(ms: number): Promise<void> {
+  return new Promise(resolve => setTimeout(resolve, ms))
 }

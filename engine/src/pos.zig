@@ -74,6 +74,13 @@ pub const Move = struct {
     ) [4]u8 {
         return self.orig.notation() ++ self.dest.notation();
     }
+
+    pub fn eq(
+        self: *const Move,
+        other: *const Move,
+    ) bool {
+        return self.orig.index == other.orig.index and self.dest.index == other.dest.index;
+    }
 };
 
 pub const MoveList = struct {
