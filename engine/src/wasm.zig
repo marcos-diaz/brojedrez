@@ -6,6 +6,8 @@ const Pos = @import("pos.zig").Pos;
 const Move = @import("pos.zig").Move;
 
 var board: Board = undefined;
+var highlight_orig: i32 = -1;
+var highlight_dest: i32 = -1;
 
 pub export fn init() void {
     board = Board.init();
@@ -46,4 +48,14 @@ pub export fn autoplay() void {
     // const score = minmax.score;
     // prev_board = board;
     board = board.fork_with_move(move);
+    highlight_orig = move.orig.index;
+    highlight_dest = move.dest.index;
+}
+
+pub export fn get_highlight_orig() i32 {
+    return highlight_orig;
+}
+
+pub export fn get_highlight_dest() i32 {
+    return highlight_dest;
 }

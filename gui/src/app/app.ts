@@ -14,6 +14,8 @@ export class App {
   wasm: any = undefined
   board = signal<Piece[]>([])
   selected?: number = undefined
+  highlight_orig?: number = undefined
+  highlight_dest?: number = undefined
   turn = true
 
   constructor() {
@@ -46,7 +48,11 @@ export class App {
   }
 
   cellStyle(index: number): String {
-    return this.cellStyleOdd(index) + ' ' + this.cellStylePiece(index)
+    return (
+      this.cellStyleOdd(index) + ' ' +
+      this.cellStylePiece(index) + ' ' +
+      this.cellStyleSelected(index)
+    )
   }
 
   cellStyleOdd(index: number): String {
@@ -62,10 +68,18 @@ export class App {
     return Piece[this.board()[index]]
   }
 
+  cellStyleSelected(index: number): String {
+    if (this.highlight_orig === index) return 'selected'
+    if (this.highlight_dest === index) return 'selected'
+    return ''
+  }
+
   async cellOnClick(index: number) {
     if (this.turn === false) return
-    if (!this.selected) {
+    if (this.selected === undefined) {
       this.selected = index
+      this.highlight_orig = index
+      this.highlight_dest = undefined
       console.log('selected', index)
       return
     } else {
@@ -73,6 +87,7 @@ export class App {
       const result = this.wasm.legal_move(this.selected, index)
       if (result==0) {
         this.selected = undefined
+        this.highlight_orig = undefined
         this.refreshBoard()
         await delay(100)
         console.log('PROCESSING')
@@ -80,6 +95,8 @@ export class App {
         this.wasm.autoplay()
         const elapsed = (Date.now() - start) / 1000
         console.log('DONE', elapsed)
+        this.highlight_orig = this.wasm.get_highlight_orig()
+        this.highlight_dest = this.wasm.get_highlight_dest()
         this.refreshBoard()
       }
       this.turn = true
