@@ -1,3 +1,12 @@
-.zig-cache/
-zig-out/
 .vscode/
+
+engine/.zig-cache/
+engine/zig-out/
+gui/node_modules/
+
+gui/.angular/
+gui/dist/
+gui/tmp/
+gui/out-tsc/
+gui/bazel-out/
+gui/.sass-cache/
