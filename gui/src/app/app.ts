@@ -12,12 +12,26 @@ import { CommonModule } from '@angular/common';
 export class App {
   protected readonly title = signal('chess');
   indexes = Array(64).fill(0).map((_, i) => 63 - i);
+  wasm: any = undefined
 
-  cellStyle = (index: number): String => {
-    return this.cellOdd(index) + ' ' + this.cellPiece(index)
+  constructor() {
+    this.loadWasm()
   }
 
-  cellOdd = (index: number): String => {
+  async loadWasm() {
+    const response = await fetch('brojedrez.wasm')
+    const bytes = await response.arrayBuffer()
+    const {instance} = await WebAssembly.instantiate(bytes)
+    this.wasm = instance.exports
+    console.log('WASM loaded')
+    console.log(this.wasm)
+  }
+
+  cellStyle(index: number): String {
+    return this.cellStyleOdd(index) + ' ' + this.cellStylePiece(index)
+  }
+
+  cellStyleOdd(index: number): String {
     if (Math.floor(index / 8) % 2) {
       if (!(index % 2)) return 'dark'
     } else {
@@ -26,7 +40,7 @@ export class App {
     return ''
   }
 
-  cellPiece = (index: number): String => {
+  cellStylePiece(index: number): String {
     if (index == 0)  return 'rook1'
     if (index == 1)  return 'knight1'
     if (index == 2)  return 'bishop1'
@@ -61,5 +75,10 @@ export class App {
     if (index == 63-14) return 'pawn2'
     if (index == 63-15) return 'pawn2'
     return ''
+  }
+
+  cellOnClick(index: number) {
+    const x = this.wasm.add(index, 100)
+    console.log(`Cell ${x}`)
   }
 }

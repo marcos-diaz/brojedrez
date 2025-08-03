@@ -5,9 +5,10 @@
     </div>
     <div class='board'>
       <div
-        class="cell"
-        *ngFor="let i of indexes"
+        class='cell'
+        *ngFor='let i of indexes'
         [ngClass]='cellStyle(i)'
+        (click)='cellOnClick(i)'
         >
       </div>
     </div>
