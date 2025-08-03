@@ -74,6 +74,13 @@ pub const Move = struct {
     ) [4]u8 {
         return self.orig.notation() ++ self.dest.notation();
     }
+
+    pub fn eq(
+        self: *const Move,
+        other: *const Move,
+    ) bool {
+        return (self.orig.index == other.orig.index) and (self.dest.index == other.dest.index);
+    }
 };
 
 pub const MoveList = struct {
@@ -86,6 +93,24 @@ pub const MoveList = struct {
     ) void {
         self.data[self.len] = move;
         self.len += 1;
+    }
+
+    pub fn put_first(
+        self: *MoveList,
+        move: Move,
+    ) MoveList {
+        var newlist = MoveList{};
+        newlist.add(move);
+        var found = false;
+        for (0..self.len) |i| {
+            const move_in_list = self.data[i];
+            if (move_in_list.eq(&move)) {
+                found = true;
+            } else {
+                newlist.add(move_in_list);
+            }
+        }
+        return if (found) newlist else self.*;
     }
 };
 

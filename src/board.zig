@@ -11,6 +11,7 @@ const MoveAndScore = @import("pos.zig").MoveAndScore;
 pub const Stats = struct {
     evals: [16]u32 = .{0} ** 16,
     history: MoveList = MoveList{},
+    current: MoveList = MoveList{},
 };
 
 pub const Player = enum {
@@ -174,16 +175,31 @@ pub const Board = struct {
         self: *Board,
     ) void {
         self.load_from_string(
-            "RHB-KBHR" ++
-            "P-P-PPPP" ++
-            "--------" ++
-            "-hQp----" ++
-            "q-P-----" ++
-            "----p---" ++
-            "pp---ppp" ++
-            "r-b-kbhr"
+            "R-K--B-R" ++
+            "PP----P-" ++
+            "-----H--" ++
+            "--p-q--P" ++
+            "-p---b-Q" ++
+            "-------p" ++
+            "p---bpp-" ++
+            "-----rk-"
         );
     }
+
+    // pub fn setup(
+    //     self: *Board,
+    // ) void {
+    //     self.load_from_string(
+    //         "RHB-KBHR" ++
+    //         "P-P-PPPP" ++
+    //         "--------" ++
+    //         "-hQp----" ++
+    //         "q-P-----" ++
+    //         "----p---" ++
+    //         "pp---ppp" ++
+    //         "r-b-kbhr"
+    //     );
+    // }
 
     // pub fn setup(
     //     self: *Board,
@@ -503,6 +519,7 @@ pub const Board = struct {
 
     pub fn get_legal_moves(
         self: *Board,
+        first: ?Move,
     ) MoveList {
         var movelist = MoveList{};
         var own_mask = self.get_own_mask();
@@ -516,6 +533,9 @@ pub const Board = struct {
                 if (fork.is_check_on_opp()) continue; // Exclude moves exposing own king.
                 movelist.add(move);
             }
+        }
+        if (first) |first_| {
+            movelist = movelist.put_first(first_);
         }
         return movelist;
     }
@@ -674,7 +694,16 @@ pub const Board = struct {
             var best: MoveAndScore = MoveAndScore{.move=null, .score=init_score};
             var new_best_min = best_min;
             var new_best_max = best_max;
-            const legal = self.get_legal_moves();
+
+            var legal: MoveList = undefined;
+            if (stats.*.current.data[depth+2].eq(&stats.*.history.data[depth])) {
+                const prev_best_move: ?Move =  stats.*.current.data[depth];
+                legal = self.get_legal_moves(prev_best_move);
+            } else {
+                legal = self.get_legal_moves(null);
+            }
+            // const legal = self.get_legal_moves(null);
+
             // Draw by stalemate.
             if (legal.len == 0 and !self.is_check_on_own()) {
                 best.score = 0;
@@ -682,7 +711,9 @@ pub const Board = struct {
             }
             // Iterate moves.
             for (0..legal.len) |i| {
-                const move = legal.data[i];
+                const index = if (!p1) i else legal.len-i-1;
+                const move = legal.data[index];
+                stats.*.current.data[depth] = move;
                 // terminal.indent(depth);
                 // print("{s}\n", .{move.notation()});
                 // Prune.
@@ -714,11 +745,23 @@ pub const Board = struct {
                     }
                 }
             }
+            if (best.move) |best_move| stats.*.history.data[depth] = best_move;
             return best;
         }
     }
 };
 
+// 1200
+// const DEPTH_COLD = 4;
+// const DEPTH_HOT =  5;
+// const DEPTH_MAX =  6;
+
+// 1500
 const DEPTH_COLD = 5;
-const DEPTH_HOT = 7;
-const DEPTH_MAX = 9;
+const DEPTH_HOT =  5;
+const DEPTH_MAX =  5;
+
+// 1700
+// const DEPTH_COLD = 6;
+// const DEPTH_HOT =  6;
+// const DEPTH_MAX =  6;

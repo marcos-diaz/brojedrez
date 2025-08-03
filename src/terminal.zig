@@ -6,6 +6,7 @@ const Player = @import("board.zig").Player;
 const Stats = @import("board.zig").Stats;
 const Pos = @import("pos.zig").Pos;
 const Move = @import("pos.zig").Move;
+const MoveList = @import("pos.zig").MoveList;
 
 const print = std.debug.print;
 const stdout = std.io.getStdOut().writer();
@@ -104,6 +105,7 @@ pub fn loop() !void {
     var buffer: [128]u8 = undefined;
 
     while(true) {
+        var stats = Stats{};
         print("{s}>{s} ", .{green, reset});
         @memset(&buffer, 0);
         const input_len = try stdin.read(&buffer);
@@ -139,7 +141,7 @@ pub fn loop() !void {
         }
 
         if (std.mem.eql(u8, buffer[0..5], "legal")) {
-            const legal = board.get_legal_moves();
+            const legal = board.get_legal_moves(null);
             for (0..legal.len) |i| {
                 const move = legal.data[i];
                 print("{s}, ", .{ move.notation() });
@@ -203,7 +205,6 @@ pub fn loop() !void {
             (input_len == 5 and (std.mem.eql(u8, buffer[0..4], "play"))) or
             (input_len == 2 and buffer[0] == 'p')
         ) {
-            var stats = Stats{};
             const start = std.time.nanoTimestamp();
             const minmax = board.minmax(0, 32000, -32000, &stats);
             const end = std.time.nanoTimestamp();
@@ -228,15 +229,14 @@ pub fn loop() !void {
             print("  d=7  {d:>10}\n", .{stats.evals[ 7]});
             print("  d=8  {d:>10}\n", .{stats.evals[ 8]});
             print("  d=9  {d:>10}\n", .{stats.evals[ 9]});
-            print("  d=10  {d:>9}\n", .{stats.evals[10]});
-            print("  d=11  {d:>9}\n", .{stats.evals[11]});
-            // print("  d=12  {d:>10}\n", .{stats.evals[12]});
-            // print("  d=13  {d:>10}\n", .{stats.evals[13]});
-            // print("  d=14  {d:>10}\n", .{stats.evals[14]});
-            // print("  d=15  {d:>10}\n", .{stats.evals[15]});
             const total = @as(f32, @floatFromInt(stats.evals[ 0])) / 1_000_000.0;
             print("{d:.1}M in {d} seconds\n", .{total, elapsed});
             print("{d} ns / eval\n", .{per_eval});
+            for (0..6) |i| {
+                const path = stats.history.data[i];
+                print("{s} ", .{path.notation()});
+            }
+            print("\n", .{});
             print("minmax {s} {d}\n", .{move.notation(), score});
             // print("eval path {d}\n", .{stats.history.len});
             // var i: usize = 0;
@@ -317,7 +317,7 @@ pub fn loop() !void {
         if(input_len == 4) {
             var orig_: ?Pos = null;
             const dest = Pos.from_notation(buffer[1], buffer[2]);
-            const legal = board.get_legal_moves();
+            const legal = board.get_legal_moves(null);
             for(0..legal.len) |i| {
                 const move = legal.data[i];
                 if (move.dest.index != dest.index) continue;
@@ -352,7 +352,7 @@ pub fn loop() !void {
         if(input_len == 3) {
             var orig_: ?Pos = null;
             const dest = Pos.from_notation(buffer[0], buffer[1]);
-            const legal = board.get_legal_moves();
+            const legal = board.get_legal_moves(null);
             for(0..legal.len) |i| {
                 const move = legal.data[i];
                 // print("{s}\n", .{move.notation()});
