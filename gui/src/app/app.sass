@@ -5,9 +5,10 @@
     left: 50%
     width: 100%
     height: 100%
-    max-width:  calc(100vh * (9 / 14))
-    max-height: calc(100vw * (14 / 9))
+    max-width:  calc(100vh * (8 / 12))
+    max-height: calc(100vw * (12 / 8))
     overflow: hidden
+    user-select: none
 
 .ui
     height: 100%
@@ -19,66 +20,108 @@
 
 .top
     flex: 1
-    font-size: 40px
-    color: white;
-
-.bottom
-    flex: 1
+    font-size: 2vh
+    color: white
 
 .board
     aspect-ratio: 1/1
-    background-color: blue
     background-image: url("/wood.jpg")
     display: grid
-    grid-template-columns: repeat(8, 1fr);
-    grid-template-rows:    repeat(8, 1fr);
+    grid-template-columns: repeat(8, 1fr)
+    grid-template-rows:    repeat(8, 1fr)
 
 .cell
     background-repeat: no-repeat
     background-size: contain
     background-position: center
+    cursor: pointer
 
 .cell.dark
     background-color: hsla(0deg, 40%, 15%, 50%)
 
 .cell.selected
-    background-color: hsla(170deg, 50%, 40%, 50%)
+    background-color: hsla(40deg, 60%, 60%, 50%)
 
 .cell.selected.dark
-    background-color: hsla(170deg, 50%, 30%, 50%) !important
+    background-color: hsla(40deg, 60%, 35%, 50%) !important
 
 .PAWN1
-    background-image: url("/pawn1.svg")
+    background-image: url("/pieces/pawn1.svg")
 
 .PAWN2
-    background-image: url("/pawn2.svg")
+    background-image: url("/pieces/pawn2.svg")
 
 .ROOK1
-    background-image: url("/rook1.svg")
+    background-image: url("/pieces/rook1.svg")
 
 .ROOK2
-    background-image: url("/rook2.svg")
+    background-image: url("/pieces/rook2.svg")
 
 .KNIGHT1
-    background-image: url("/knight1.svg")
+    background-image: url("/pieces/knight1.svg")
 
 .KNIGHT2
-    background-image: url("/knight2.svg")
+    background-image: url("/pieces/knight2.svg")
 
 .BISHOP1
-    background-image: url("/bishop1.svg")
+    background-image: url("/pieces/bishop1.svg")
 
 .BISHOP2
-    background-image: url("/bishop2.svg")
+    background-image: url("/pieces/bishop2.svg")
 
 .QUEEN1
-    background-image: url("/queen1.svg")
+    background-image: url("/pieces/queen1.svg")
 
 .QUEEN2
-    background-image: url("/queen2.svg")
+    background-image: url("/pieces/queen2.svg")
 
 .KING1
-    background-image: url("/king1.svg")
+    background-image: url("/pieces/king1.svg")
 
 .KING2
-    background-image: url("/king2.svg")
+    background-image: url("/pieces/king2.svg")
+
+.bottom
+    flex: 1
+    display: flex
+    align-items: center
+    cursor: pointer
+
+.bottom div
+    flex: 1
+    text-align: center
+
+.bottom .mode
+    height: 100%
+    background-color: hsla(0deg, 0%, 0%, 50%)
+    cursor: pointer
+    position: relative
+
+.bottom .grid
+    position: absolute;
+    width: 100%
+    height: 90%
+    top: 50%
+    left: 50%
+    transform: translate(-50%, -50%)
+    display: grid
+    grid-template-columns: repeat(2, 1fr)
+    grid-template-rows:    repeat(2, 1fr)
+    align-items: center
+
+.bottom img
+    width: 4vh
+    filter: brightness(50%)
+
+// .bottom .selected
+//     filter: brightness(80%) !important
+
+// .bottom .mode img
+//     width: 4vh
+//     filter: brightness(40%)
+//     padding-top: 0.8vh
+
+.bottom .text
+    color: hsl(0deg, 0%, 50%)
+    font-size: 1.8vh
+    // font-weight: bold

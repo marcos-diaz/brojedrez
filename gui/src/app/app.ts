@@ -47,6 +47,11 @@ export class App {
     this.board.set(board)
   }
 
+  undo() {
+    this.wasm.undo()
+    this.refreshBoard()
+  }
+
   cellStyle(index: number): String {
     return (
       this.cellStyleOdd(index) + ' ' +
@@ -80,11 +85,10 @@ export class App {
       this.selected = index
       this.highlight_orig = index
       this.highlight_dest = undefined
-      console.log('selected', index)
       return
     } else {
       this.turn = false
-      const result = this.wasm.legal_move(this.selected, index)
+      const result = this.wasm.move_legal(this.selected, index)
       if (result==0) {
         this.selected = undefined
         this.highlight_orig = undefined

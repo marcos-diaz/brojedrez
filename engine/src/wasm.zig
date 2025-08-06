@@ -6,6 +6,7 @@ const Pos = @import("pos.zig").Pos;
 const Move = @import("pos.zig").Move;
 
 var board: Board = undefined;
+var board_prev: Board = undefined;
 var highlight_orig: i32 = -1;
 var highlight_dest: i32 = -1;
 
@@ -19,7 +20,7 @@ pub export fn get(index: i32) i32 {
     return result;
 }
 
-pub export fn legal_move(index0: i32, index1: i32) i32 {
+pub export fn move_legal(index0: i32, index1: i32) i32 {
     const orig = Pos.from_int(@intCast(index0));
     const dest = Pos.from_int(@intCast(index1));
     const move = Move{.orig=orig, .dest=dest};
@@ -30,6 +31,7 @@ pub export fn legal_move(index0: i32, index1: i32) i32 {
         if (move.eq(&allowed_move)) is_legal = true;
     }
     if (is_legal) {
+        board_prev = board;
         board.move_to(move);
         return 0;
     }
@@ -58,4 +60,8 @@ pub export fn get_highlight_orig() i32 {
 
 pub export fn get_highlight_dest() i32 {
     return highlight_dest;
+}
+
+pub export fn undo() void {
+    board = board_prev;
 }
