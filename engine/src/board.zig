@@ -778,7 +778,78 @@ pub const Board = struct {
     }
 };
 
-// 1200, 1200, 1300, 1500
-const DEPTH_COLD = 5;
-const DEPTH_HOT =  6;
-const DEPTH_MAX =  6;
+    // EASY ???
+    // 1200+++ 1300- (very fast)
+    // const DEPTH_COLD = 4;
+    // const DEPTH_HOT =  4;
+    // const DEPTH_MAX =  7;
+
+    // EASY ???
+    // 1300+ 1400+ (fast)
+    // const DEPTH_COLD = 4;
+    // const DEPTH_HOT =  5;
+    // const DEPTH_MAX =  7;
+
+    // NORMAL
+    // 1500++ 1600-+++ 1700- (fast-mid)
+    // const DEPTH_COLD = 4;
+    // const DEPTH_HOT =  5;
+    // const DEPTH_MAX =  9;
+
+    // HARD
+    // 1700+ 1800+ (mid)
+    const DEPTH_COLD = 5;
+    const DEPTH_HOT =  6;
+    const DEPTH_MAX =  8;
+
+// 1800-
+// const DEPTH_COLD = 5;
+// const DEPTH_HOT =  5;
+// const DEPTH_MAX =  9;
+
+// 1800? but slow
+// const DEPTH_COLD = 5;
+// const DEPTH_HOT =  6;
+// const DEPTH_MAX =  9;
+
+// 1800-! 1700-
+// const DEPTH_COLD = 4;
+// const DEPTH_HOT =  5;
+// const DEPTH_MAX =  11;
+
+// const DEPTH_COLD = 5;
+// const DEPTH_HOT =  5;
+// const DEPTH_MAX =  8;
+
+// 1600+- (mid)
+// const DEPTH_COLD = 5;
+// const DEPTH_HOT =  5;
+// const DEPTH_MAX =  7;
+
+// 1600-
+// const DEPTH_COLD = 5;
+// const DEPTH_HOT =  5;
+// const DEPTH_MAX =  5;
+
+// 1400-+- 1500+ 1600=--
+// const DEPTH_COLD = 4;
+// const DEPTH_HOT =  6;
+// const DEPTH_MAX =  6;
+
+// 1500+(mobile) 1500+(mobile) 1600(browser)  1200-?????
+// const DEPTH_COLD = 5;
+// const DEPTH_HOT =  6;
+// const DEPTH_MAX =  6;
+
+// HARD
+// 1600+ 1700+(browser)   safari<=10s
+// const DEPTH_COLD = 5;
+// const DEPTH_HOT =  7;
+// const DEPTH_MAX =  7;
+
+// slow
+// const DEPTH_COLD = 5;
+// const DEPTH_HOT =  7;
+// const DEPTH_MAX =  9;
+
+
