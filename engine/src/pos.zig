@@ -68,6 +68,7 @@ pub const Pos = struct{
 pub const Move = struct {
     orig: Pos,
     dest: Pos,
+    capture_score: u6 = 0,
 
     pub fn notation(
         self: *const Move,
@@ -93,6 +94,18 @@ pub const MoveList = struct {
     ) void {
         self.data[self.len] = move;
         self.len += 1;
+    }
+
+    pub fn sort(
+        self: *MoveList,
+    ) void {
+        const slice = self.data[0..self.len];
+        std.mem.sort(Move, slice, {}, struct {
+            fn compare(context: void, a: Move, b: Move) bool {
+                _ = context;
+                return a.capture_score > b.capture_score;
+            }
+        }.compare);
     }
 };
 

@@ -1,6 +1,7 @@
 const std = @import("std");
 const BoardMask = @import("boardmask.zig").BoardMask;
 const Pos = @import("pos.zig").Pos;
+const Piece = @import("board.zig").Piece;
 
 // Comptime tables.
 pub const pawn_moves_p1 = get_moves_pawn_all(false);
@@ -12,6 +13,7 @@ pub const knight_moves = get_moves_knight_all();
 pub const slides = get_moves_slide();
 pub const line_sink = get_line_sink();
 pub const line_rise = get_line_rise();
+pub const capture_score = get_capture_score();
 
 fn get_moves_pawn_all(
     flip: bool,
@@ -274,3 +276,70 @@ pub const piece_score: [64]i16 = .{
       6,   7,   8,   8,   8,   8,   7,   6,
       0,   0,   0,   0,   0,   0,   0,   0,
 };
+
+fn get_capture_score() [14][14]u5 {
+    var score: [14][14]u5 = std.mem.zeroes([14][14]u5);
+    score[@intFromEnum(Piece.PAWN1)][@intFromEnum(Piece.QUEN2)] = 31;
+    score[@intFromEnum(Piece.PAWN1)][@intFromEnum(Piece.ROOK2)] = 30;
+    score[@intFromEnum(Piece.PAWN1)][@intFromEnum(Piece.KNIG2)] = 28;
+    score[@intFromEnum(Piece.PAWN1)][@intFromEnum(Piece.BISH2)] = 29;
+    score[@intFromEnum(Piece.KNIG1)][@intFromEnum(Piece.QUEN2)] = 27;
+    score[@intFromEnum(Piece.KNIG1)][@intFromEnum(Piece.ROOK2)] = 26;
+    score[@intFromEnum(Piece.KNIG1)][@intFromEnum(Piece.BISH2)] = 25;
+    score[@intFromEnum(Piece.BISH1)][@intFromEnum(Piece.ROOK2)] = 23;
+    score[@intFromEnum(Piece.BISH1)][@intFromEnum(Piece.QUEN2)] = 24;
+    score[@intFromEnum(Piece.ROOK1)][@intFromEnum(Piece.QUEN2)] = 22;
+    score[@intFromEnum(Piece.KING1)][@intFromEnum(Piece.QUEN2)] = 21;
+    score[@intFromEnum(Piece.KING1)][@intFromEnum(Piece.ROOK2)] = 20;
+    score[@intFromEnum(Piece.KING1)][@intFromEnum(Piece.BISH2)] = 19;
+    score[@intFromEnum(Piece.KING1)][@intFromEnum(Piece.KNIG2)] = 18;
+    score[@intFromEnum(Piece.KING1)][@intFromEnum(Piece.PAWN2)] = 17;
+    score[@intFromEnum(Piece.QUEN1)][@intFromEnum(Piece.QUEN2)] = 16;
+    score[@intFromEnum(Piece.ROOK1)][@intFromEnum(Piece.ROOK2)] = 15;
+    score[@intFromEnum(Piece.BISH1)][@intFromEnum(Piece.BISH2)] = 14;
+    score[@intFromEnum(Piece.KNIG1)][@intFromEnum(Piece.KNIG2)] = 13;
+    score[@intFromEnum(Piece.PAWN1)][@intFromEnum(Piece.PAWN2)] = 12;
+    score[@intFromEnum(Piece.QUEN1)][@intFromEnum(Piece.ROOK2)] = 11;
+    score[@intFromEnum(Piece.ROOK1)][@intFromEnum(Piece.BISH2)] = 10;
+    score[@intFromEnum(Piece.BISH1)][@intFromEnum(Piece.KNIG2)] = 9;
+    score[@intFromEnum(Piece.KNIG1)][@intFromEnum(Piece.PAWN2)] = 8;
+    score[@intFromEnum(Piece.QUEN1)][@intFromEnum(Piece.BISH2)] = 7;
+    score[@intFromEnum(Piece.ROOK1)][@intFromEnum(Piece.KNIG2)] = 6;
+    score[@intFromEnum(Piece.BISH1)][@intFromEnum(Piece.PAWN2)] = 5;
+    score[@intFromEnum(Piece.QUEN1)][@intFromEnum(Piece.KNIG2)] = 4;
+    score[@intFromEnum(Piece.ROOK1)][@intFromEnum(Piece.PAWN2)] = 3;
+    score[@intFromEnum(Piece.QUEN1)][@intFromEnum(Piece.PAWN2)] = 2;
+
+    score[@intFromEnum(Piece.PAWN2)][@intFromEnum(Piece.QUEN1)] = 31;
+    score[@intFromEnum(Piece.PAWN2)][@intFromEnum(Piece.ROOK1)] = 30;
+    score[@intFromEnum(Piece.PAWN2)][@intFromEnum(Piece.KNIG1)] = 28;
+    score[@intFromEnum(Piece.PAWN2)][@intFromEnum(Piece.BISH1)] = 29;
+    score[@intFromEnum(Piece.KNIG2)][@intFromEnum(Piece.QUEN1)] = 27;
+    score[@intFromEnum(Piece.KNIG2)][@intFromEnum(Piece.ROOK1)] = 26;
+    score[@intFromEnum(Piece.KNIG2)][@intFromEnum(Piece.BISH1)] = 25;
+    score[@intFromEnum(Piece.BISH2)][@intFromEnum(Piece.ROOK1)] = 23;
+    score[@intFromEnum(Piece.BISH2)][@intFromEnum(Piece.QUEN1)] = 24;
+    score[@intFromEnum(Piece.ROOK2)][@intFromEnum(Piece.QUEN1)] = 22;
+    score[@intFromEnum(Piece.KING2)][@intFromEnum(Piece.QUEN1)] = 21;
+    score[@intFromEnum(Piece.KING2)][@intFromEnum(Piece.ROOK1)] = 20;
+    score[@intFromEnum(Piece.KING2)][@intFromEnum(Piece.BISH1)] = 19;
+    score[@intFromEnum(Piece.KING2)][@intFromEnum(Piece.KNIG1)] = 18;
+    score[@intFromEnum(Piece.KING2)][@intFromEnum(Piece.PAWN1)] = 17;
+    score[@intFromEnum(Piece.QUEN2)][@intFromEnum(Piece.QUEN1)] = 16;
+    score[@intFromEnum(Piece.ROOK2)][@intFromEnum(Piece.ROOK1)] = 15;
+    score[@intFromEnum(Piece.BISH2)][@intFromEnum(Piece.BISH1)] = 14;
+    score[@intFromEnum(Piece.KNIG2)][@intFromEnum(Piece.KNIG1)] = 13;
+    score[@intFromEnum(Piece.PAWN2)][@intFromEnum(Piece.PAWN1)] = 12;
+    score[@intFromEnum(Piece.QUEN2)][@intFromEnum(Piece.ROOK1)] = 11;
+    score[@intFromEnum(Piece.ROOK2)][@intFromEnum(Piece.BISH1)] = 10;
+    score[@intFromEnum(Piece.BISH2)][@intFromEnum(Piece.KNIG1)] = 9;
+    score[@intFromEnum(Piece.KNIG2)][@intFromEnum(Piece.PAWN1)] = 8;
+    score[@intFromEnum(Piece.QUEN2)][@intFromEnum(Piece.BISH1)] = 7;
+    score[@intFromEnum(Piece.ROOK2)][@intFromEnum(Piece.KNIG1)] = 6;
+    score[@intFromEnum(Piece.BISH2)][@intFromEnum(Piece.PAWN1)] = 5;
+    score[@intFromEnum(Piece.QUEN2)][@intFromEnum(Piece.KNIG1)] = 4;
+    score[@intFromEnum(Piece.ROOK2)][@intFromEnum(Piece.PAWN1)] = 3;
+    score[@intFromEnum(Piece.QUEN2)][@intFromEnum(Piece.PAWN1)] = 2;
+    return score;
+}
+

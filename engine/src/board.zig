@@ -511,12 +511,22 @@ pub const Board = struct {
             var moves = self.get_moves_for_pos(orig);
             for(0..moves.count()) |_| {
                 const dest = moves.next();
-                const move = Move{.orig=orig, .dest=dest};
+                var move = Move{.orig=orig, .dest=dest};
+                // Exclude moves exposing own king.
                 var fork = self.fork_with_move(move);
-                if (fork.is_check_on_opp()) continue; // Exclude moves exposing own king.
+                if (fork.is_check_on_opp()) continue;
+                // const is_check_move = fork.is_check_on_own();
+                // Capture score.
+                const piece_dest = self.get(move.dest);
+                if (piece_dest != Piece.NONE) {
+                    const piece_orig = self.get(move.orig);
+                    move.capture_score = tables.capture_score[@intFromEnum(piece_orig)][@intFromEnum(piece_dest)];
+                    // if (is_check_move) move.capture_score += 10;
+                }
                 movelist.add(move);
             }
         }
+        movelist.sort();
         return movelist;
     }
 
