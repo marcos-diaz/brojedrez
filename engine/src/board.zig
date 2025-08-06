@@ -37,6 +37,12 @@ pub const Board = struct {
     n_pieces: u8 = 32,
     last_p1_move_hot: bool = false,
     last_p2_move_hot: bool = false,
+    p1_king_moved: bool = false,
+    p1_rook_short_moved: bool = false,
+    p1_rook_long_moved: bool = false,
+    p2_king_moved: bool = false,
+    p2_rook_short_moved: bool = false,
+    p2_rook_long_moved: bool = false,
     p1_pawns: BoardMask = BoardMask{},
     p1_rooks: BoardMask = BoardMask{},
     p1_knigs: BoardMask = BoardMask{},
@@ -297,8 +303,27 @@ pub const Board = struct {
         if (captured) self.n_pieces -= 1;
         const pawn_walk = self.n_pieces < 12 and (piece==Piece.PAWN1 or piece==Piece.PAWN2);
         const is_hot = captured or pawn_walk or self.is_check_on_opp();
-        if (self.turn == Player.PLAYER1) self.last_p1_move_hot = is_hot;
-        if (self.turn == Player.PLAYER2) self.last_p2_move_hot = is_hot;
+        const p1 = self.turn == Player.PLAYER1;
+        if ( p1) self.last_p1_move_hot = is_hot;
+        if (!p1) self.last_p2_move_hot = is_hot;
+        // Castling.
+        if (piece == Piece.KING1) {
+            self.p1_king_moved = true;
+        }
+        if (piece == Piece.ROOK1 and move.orig.index == 0) {
+            self.p1_rook_short_moved = true;
+        }
+        if (piece == Piece.ROOK1 and move.orig.index == 7) {
+            self.p1_rook_long_moved = true;
+        }
+        if (piece == Piece.KING1 and move.orig.index==3 and move.dest.index == 1) {
+            self.remove(Pos.from_int(0));
+            self.add(Pos.from_int(2), Piece.ROOK1);
+        }
+        if (piece == Piece.KING1 and move.orig.index==3 and move.dest.index == 5) {
+            self.remove(Pos.from_int(7));
+            self.add(Pos.from_int(4), Piece.ROOK1);
+        }
         // Piece exchange.
         self.remove(move.orig);
         self.remove(move.dest);
@@ -420,6 +445,30 @@ pub const Board = struct {
         var moves = tables.king_moves[pos.index];
         var own_mask = if (flip) self.get_p2_mask() else self.get_p1_mask();
         moves.remove_mask(&own_mask);
+        // Castling.
+        const p1 = self.turn == Player.PLAYER1;
+        if (p1) {
+            // Castling P1 short.
+            if (
+                !self.p1_king_moved and
+                !self.p1_rook_short_moved and
+                self.get(Pos.from_int(1)) == Piece.NONE and       // Check all under threat.
+                self.get(Pos.from_int(2)) == Piece.NONE
+            ) {
+                moves.add(Pos.from_int(1));
+            }
+            // Castling P1 long.
+            if (
+                !self.p1_king_moved and
+                !self.p1_rook_long_moved and
+                self.get(Pos.from_int(4)) == Piece.NONE and
+                self.get(Pos.from_int(5)) == Piece.NONE and
+                self.get(Pos.from_int(6)) == Piece.NONE
+            ) {
+                moves.add(Pos.from_int(5));
+            }
+        }
+        // TODO: P2.
         return moves;
     }
 
