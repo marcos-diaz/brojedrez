@@ -17,6 +17,7 @@ export class App {
   highlight_orig?: number = undefined
   highlight_dest?: number = undefined
   turn = true
+  mode = 'play'
 
   constructor() {
   }
@@ -45,6 +46,11 @@ export class App {
       board[index] = piece
     }
     this.board.set(board)
+  }
+
+  init() {
+    this.wasm.init()
+    this.refreshBoard()
   }
 
   undo() {

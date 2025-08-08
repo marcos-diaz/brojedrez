@@ -21,21 +21,44 @@
           <div><img src='/icons/edit-square.svg'/></div>
         </div>
       </div> -->
-      <div>
-        <img src='/icons/group.svg'/>
-        <div class='text'>Play ⏷</div>
+
+      <div class='mode play' *ngIf='mode=="play"'>
+        <div (click)='mode="categories"'>
+          <img src='/icons/menu.svg'/>
+          <div class='text'>Settings</div>
+        </div>
+        <div (click)='init()'>
+          <img src='/icons/add.svg'/>
+          <div class='text'>New game</div>
+        </div>
+        <div (click)='undo()'>
+          <img src='/icons/chevron-left.svg'/>
+          <div class='text'>Back</div>
+        </div>
+        <div>
+          <img src='/icons/chevron-right.svg'/>
+          <div class='text'>Forward</div>
+        </div>
       </div>
-      <div>
-        <img src='/icons/add.svg'/>
-        <div class='text'>New game</div>
-      </div>
-      <div>
-        <img src='/icons/fast-rewind.svg'/>
-        <div class='text'>Replay</div>
-      </div>
-      <div (click)='undo()'>
-        <img src='/icons/undo.svg'/>
-        <div class='text'>Undo</div>
+
+      <div class='mode categories' *ngIf='mode=="categories"'>
+        <div (click)='mode="play"'>
+          <img src='/icons/pawn.svg'/>
+          <div class='text'>Play</div>
+        </div>
+        <div>
+          <img src='/icons/edit-square.svg'/>
+          <div class='text'>Edit mode</div>
+        </div>
+        <div>
+          <img src='/icons/save.svg'/>
+          <div class='text'>Load/Save</div>
+        </div>
+        <div>
+          <img src='/icons/info.svg'/>
+          <div class='text'>Info</div>
+        </div>
+
       </div>
     </div>
   </div>
