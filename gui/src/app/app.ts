@@ -59,6 +59,20 @@ export class App {
     this.refreshBoard()
   }
 
+  timeAvg() {
+    const sum = this.times.reduce((a, b) => a + b, 0)
+    return (sum / this.times.length).toFixed(1)
+  }
+
+  timeP25worst() {
+    const sublen = this.times.length / 4
+    const sum = this.times
+      .sort((a, b) => b - a)
+      .slice(0, sublen)
+      .reduce((a, b) => a + b, 0)
+    return (sum / sublen).toFixed(1)
+  }
+
   cellStyle(index: number): String {
     return (
       this.cellStyleOdd(index) + ' ' +
@@ -106,7 +120,7 @@ export class App {
         this.wasm.autoplay()
         const elapsed = (Date.now() - start) / 1000
         this.times.push(elapsed)
-        console.log('DONE', elapsed, this.times.reduce((a,b) => a+b, 0) / this.times.length)
+        console.log('DONE', elapsed, this.timeAvg(), this.timeP25worst())
         this.highlight_orig = this.wasm.get_highlight_orig()
         this.highlight_dest = this.wasm.get_highlight_dest()
         this.refreshBoard()
