@@ -100,12 +100,13 @@ pub const MoveList = struct {
         self: *MoveList,
     ) void {
         const slice = self.data[0..self.len];
-        std.mem.sort(Move, slice, {}, struct {
+        const compare = struct {
             fn compare(context: void, a: Move, b: Move) bool {
                 _ = context;
                 return a.capture_score > b.capture_score;
             }
-        }.compare);
+        }.compare;
+        std.mem.sort(Move, slice, {}, compare);
     }
 };
 
