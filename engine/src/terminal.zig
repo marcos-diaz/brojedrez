@@ -216,7 +216,7 @@ pub fn loop() !void {
             const mm = minmax(&board, &stats);
             const end = std.time.nanoTimestamp();
             const elapsed = @divFloor(end-start, 1_000_000_000);
-            const total_evals: i64 = @intCast(stats.evals[ 0]);
+            const total_evals: i64 = @intCast(stats.total);
             const per_eval = @divFloor(end-start, total_evals);
             const move = mm.move orelse unreachable;
             const score = mm.score;
@@ -225,27 +225,22 @@ pub fn loop() !void {
             highlight.reset();
             highlight.add(move.orig);
             highlight.add(move.dest);
-            // try clear();
+            try clear();
             print_board(&board, &highlight);
             print("{s}>{s} play\n", .{green, reset});
             print("evaluated\n", .{});
-            print("  cache {d:>9}\n", .{stats.evals[15]});
-            print("  d=3  {d:>10}\n", .{stats.evals[ 3]});
-            print("  d=4  {d:>10}\n", .{stats.evals[ 4]});
-            print("  d=5  {d:>10}\n", .{stats.evals[ 5]});
-            print("  d=6  {d:>10}\n", .{stats.evals[ 6]});
-            print("  d=7  {d:>10}\n", .{stats.evals[ 7]});
-            print("  d=8  {d:>10}\n", .{stats.evals[ 8]});
-            print("  d=9  {d:>10}\n", .{stats.evals[ 9]});
-            print("  d=10  {d:>9}\n", .{stats.evals[10]});
-            print("  d=11  {d:>9}\n", .{stats.evals[11]});
-            // print("  d=12  {d:>10}\n", .{stats.evals[12]});
-            // print("  d=13  {d:>10}\n", .{stats.evals[13]});
-            // print("  d=14  {d:>10}\n", .{stats.evals[14]});
-            // print("  d=15  {d:>10}\n", .{stats.evals[15]});
-            const total = @as(f32, @floatFromInt(stats.evals[ 0])) / 1_000_000.0;
+            // print("  cache {d:>9}\n", .{stats.evals[15]});
+            print("  d=3   {d:>9} {d:>9}\n", .{stats.evals[ 3], stats.prune[ 3]});
+            print("  d=4   {d:>9} {d:>9}\n", .{stats.evals[ 4], stats.prune[ 4]});
+            print("  d=5   {d:>9} {d:>9}\n", .{stats.evals[ 5], stats.prune[ 5]});
+            print("  d=6   {d:>9} {d:>9}\n", .{stats.evals[ 6], stats.prune[ 6]});
+            print("  d=7   {d:>9} {d:>9}\n", .{stats.evals[ 7], stats.prune[ 7]});
+            print("  d=8   {d:>9} {d:>9}\n", .{stats.evals[ 8], stats.prune[ 8]});
+            print("  d=9   {d:>9} {d:>9}\n", .{stats.evals[ 9], stats.prune[ 9]});
+            print("  d=10  {d:>9} {d:>9}\n", .{stats.evals[10], stats.prune[10]});
+            const total = @as(f32, @floatFromInt(total_evals)) / 1_000_000.0;
             print("{d:.1}M in {d} seconds\n", .{total, elapsed});
-            print("{d} ns / eval\n", .{per_eval});
+            print("{d} ns / node\n", .{per_eval});
             print("minmax {s} {d}\n", .{move.notation(), score});
             // print("eval path {d}\n", .{stats.history.len});
             // var i: usize = 0;
@@ -334,10 +329,10 @@ pub fn loop() !void {
                 switch (buffer[0]) {
                     'p' => {if (piece==Piece.PAWN1 or piece==Piece.PAWN2) orig_ = move.orig;},
                     'r' => {if (piece==Piece.ROOK1 or piece==Piece.ROOK2) orig_ = move.orig;},
-                    'k' => {if (piece==Piece.KNIG1 or piece==Piece.KNIG2) orig_ = move.orig;},
+                    'n' => {if (piece==Piece.KNIG1 or piece==Piece.KNIG2) orig_ = move.orig;},
                     'b' => {if (piece==Piece.BISH1 or piece==Piece.BISH2) orig_ = move.orig;},
                     'q' => {if (piece==Piece.QUEN1 or piece==Piece.QUEN2) orig_ = move.orig;},
-                    'K' => {if (piece==Piece.KING1 or piece==Piece.KING2) orig_ = move.orig;},
+                    'k' => {if (piece==Piece.KING1 or piece==Piece.KING2) orig_ = move.orig;},
                     else => {},
                 }
             }
