@@ -18,6 +18,7 @@ export class App {
   highlight_dest?: number = undefined
   turn = true
   mode = 'play'
+  times: number[] = []
 
   constructor() {
   }
@@ -104,7 +105,8 @@ export class App {
         const start = Date.now();
         this.wasm.autoplay()
         const elapsed = (Date.now() - start) / 1000
-        console.log('DONE', elapsed)
+        this.times.push(elapsed)
+        console.log('DONE', elapsed, this.times.reduce((a,b) => a+b, 0) / this.times.length)
         this.highlight_orig = this.wasm.get_highlight_orig()
         this.highlight_dest = this.wasm.get_highlight_dest()
         this.refreshBoard()
