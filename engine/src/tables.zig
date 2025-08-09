@@ -14,6 +14,7 @@ pub const slides = get_moves_slide();
 pub const line_sink = get_line_sink();
 pub const line_rise = get_line_rise();
 pub const capture_score = get_capture_score();
+pub const piece_hash = get_piece_hash();
 
 fn get_moves_pawn_all(
     flip: bool,
@@ -343,3 +344,14 @@ fn get_capture_score() [14][14]u5 {
     return score;
 }
 
+fn get_piece_hash() [13][64]u64 {
+    @setEvalBranchQuota(1_000_000);
+    var table = std.mem.zeroes([13][64]u64);
+    var rand = std.Random.DefaultPrng.init(0);
+    for (0..12) |piece| {
+        for (0..64) |pos| {
+            table[piece][pos] = rand.random().int(u64);
+        }
+    }
+    return table;
+}

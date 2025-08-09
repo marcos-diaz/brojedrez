@@ -8,11 +8,6 @@ const Move = @import("pos.zig").Move;
 const MoveList = @import("pos.zig").MoveList;
 const MoveAndScore = @import("pos.zig").MoveAndScore;
 
-pub const Stats = struct {
-    evals: [16]u32 = .{0} ** 16,
-    history: MoveList = MoveList{},
-};
-
 pub const Player = enum {
     PLAYER1,
     PLAYER2,
@@ -33,6 +28,7 @@ pub const PieceValue = enum(i16) {
 };
 
 pub const Board = struct {
+    hash: u64 = 0,
     turn: Player = Player.PLAYER1,
     n_pieces: u8 = 32,
     last_p1_move_hot: bool = false,
@@ -88,6 +84,7 @@ pub const Board = struct {
             self.add(pos, piece);
         }
         self.update_n_pieces();
+        self.generate_hash();
     }
 
     pub fn save_to_string(
@@ -120,6 +117,7 @@ pub const Board = struct {
         self: *Board,
     ) Board {
         const board = Board{
+            .hash=self.hash,
             .turn=self.turn,
             .n_pieces=self.n_pieces,
             .last_p1_move_hot=self.last_p1_move_hot,
@@ -266,8 +264,9 @@ pub const Board = struct {
             Piece.BISH2 => self.p2_bishs.add(pos),
             Piece.QUEN2 => self.p2_quens.add(pos),
             Piece.KING2 => self.p2_kings.add(pos),
-            Piece.NONE => return,
+            Piece.NONE => {},
         }
+        self.hash ^= tables.piece_hash[@intFromEnum(piece)][pos.index];
     }
 
     pub fn remove(
@@ -290,6 +289,7 @@ pub const Board = struct {
             Piece.KING2 => self.p2_kings.remove(pos),
             Piece.NONE => {}
         }
+        self.hash ^= tables.piece_hash[@intFromEnum(piece)][pos.index];
     }
 
     pub fn move_to(
@@ -703,153 +703,15 @@ pub const Board = struct {
         return score;
     }
 
-    pub fn minmax(
+    pub fn generate_hash(
         self: *Board,
-        depth: u4,
-        best_min: i16,
-        best_max: i16,
-        stats: *Stats,
-    ) MoveAndScore {
-        const p1 = self.turn == Player.PLAYER1;
-        const opp_cold = if (p1) !self.last_p2_move_hot else !self.last_p1_move_hot;
-        const all_cold = !self.last_p1_move_hot and !self.last_p2_move_hot;
-        const is_leaf = (
-            (depth == DEPTH_MAX) or
-            (depth >= DEPTH_HOT and opp_cold) or
-            (depth >= DEPTH_COLD and all_cold)
-        );
-        // Calculate score on leafs.
-        if (is_leaf) {
-            const score = self.get_score();
-            stats.*.evals[0] += 1;
-            stats.*.evals[depth] += 1;
-            // terminal.indent(depth);
-            // print("{d}\n", .{score});
-            return MoveAndScore{.move=null, .score=score};
-        // Explore branches.
-        } else {
-            var init_score: i16 = @as(i16, -32000) + depth;
-            if (self.turn==Player.PLAYER2) init_score = -init_score;
-            var best: MoveAndScore = MoveAndScore{.move=null, .score=init_score};
-            var new_best_min = best_min;
-            var new_best_max = best_max;
-            const legal = self.get_legal_moves();
-            // Draw by stalemate.
-            if (legal.len == 0 and !self.is_check_on_own()) {
-                best.score = 0;
-                return best;
-            }
-            // Iterate moves.
-            for (0..legal.len) |i| {
-                const move = legal.data[i];
-                // terminal.indent(depth);
-                // print("{s}\n", .{move.notation()});
-                // Prune.
-                if (best_min <= best_max) {
-                    best.score = if (self.turn==Player.PLAYER1) best_max-1 else best_min+1;
-                    break;
-                }
-                // Go deeper.
-                var fork = self.fork_with_move(move);
-                const candidate = fork.minmax(
-                    depth+1,
-                    new_best_min,
-                    new_best_max,
-                    stats,
-                );
-                // Compare scores.
-                if (
-                    (!best.score_defined) or
-                    (self.turn == Player.PLAYER1 and candidate.score > best.score) or
-                    (self.turn == Player.PLAYER2 and candidate.score < best.score)
-                ) {
-                    best.move = move;
-                    best.score = candidate.score;
-                    best.score_defined = true;
-                    if (self.turn == Player.PLAYER1) {
-                        new_best_max = candidate.score;
-                    } else {
-                        new_best_min = candidate.score;
-                    }
-                }
-            }
-            return best;
+    ) void {
+        self.hash = 0;
+        for (0..64) |index| {
+            const pos = Pos.from_int(@intCast(index));
+            const piece = self.get(pos);
+            if (piece == Piece.NONE) continue;
+            self.hash ^= tables.piece_hash[@intFromEnum(piece)][pos.index];
         }
     }
 };
-
-    // EASY ???
-    // 1200+++ 1300- (very fast)
-    // const DEPTH_COLD = 4;
-    // const DEPTH_HOT =  4;
-    // const DEPTH_MAX =  7;
-
-    // EASY ???
-    // 1300+ 1400+ (fast)
-    // const DEPTH_COLD = 4;
-    // const DEPTH_HOT =  5;
-    // const DEPTH_MAX =  7;
-
-    // NORMAL
-    // 1500++ 1600-+++ 1700- (fast-mid)
-    // const DEPTH_COLD = 4;
-    // const DEPTH_HOT =  5;
-    // const DEPTH_MAX =  9;
-
-    // HARD
-    // 1700+ 1800+ (mid)
-    const DEPTH_COLD = 5;
-    const DEPTH_HOT =  6;
-    const DEPTH_MAX =  8;
-
-// 1800-
-// const DEPTH_COLD = 5;
-// const DEPTH_HOT =  5;
-// const DEPTH_MAX =  9;
-
-// 1800? but slow
-// const DEPTH_COLD = 5;
-// const DEPTH_HOT =  6;
-// const DEPTH_MAX =  9;
-
-// 1800-! 1700-
-// const DEPTH_COLD = 4;
-// const DEPTH_HOT =  5;
-// const DEPTH_MAX =  11;
-
-// const DEPTH_COLD = 5;
-// const DEPTH_HOT =  5;
-// const DEPTH_MAX =  8;
-
-// 1600+- (mid)
-// const DEPTH_COLD = 5;
-// const DEPTH_HOT =  5;
-// const DEPTH_MAX =  7;
-
-// 1600-
-// const DEPTH_COLD = 5;
-// const DEPTH_HOT =  5;
-// const DEPTH_MAX =  5;
-
-// 1400-+- 1500+ 1600=--
-// const DEPTH_COLD = 4;
-// const DEPTH_HOT =  6;
-// const DEPTH_MAX =  6;
-
-// 1500+(mobile) 1500+(mobile) 1600(browser)  1200-?????
-// const DEPTH_COLD = 5;
-// const DEPTH_HOT =  6;
-// const DEPTH_MAX =  6;
-
-// HARD
-// 1600+ 1700+(browser)   safari<=10s
-// const DEPTH_COLD = 5;
-// const DEPTH_HOT =  7;
-// const DEPTH_MAX =  7;
-
-// slow
-// const DEPTH_COLD = 5;
-// const DEPTH_HOT =  7;
-// const DEPTH_MAX =  9;
-
-

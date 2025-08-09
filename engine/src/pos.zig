@@ -113,5 +113,6 @@ pub const MoveAndScore = struct {
     move: ?Move,
     score: i16,
     score_defined: bool = false,
+    depth: u4,
 };
 

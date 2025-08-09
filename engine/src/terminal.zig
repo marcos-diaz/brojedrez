@@ -3,9 +3,12 @@ const BoardMask = @import("boardmask.zig").BoardMask;
 const Board = @import("board.zig").Board;
 const Piece = @import("board.zig").Piece;
 const Player = @import("board.zig").Player;
-const Stats = @import("board.zig").Stats;
 const Pos = @import("pos.zig").Pos;
 const Move = @import("pos.zig").Move;
+const minmax = @import("minmax.zig").minmax;
+const Stats = @import("minmax.zig").Stats;
+
+const tables = @import("tables.zig");
 
 const print = std.debug.print;
 const stdout = std.io.getStdOut().writer();
@@ -164,6 +167,11 @@ pub fn loop() !void {
             continue;
         }
 
+        if (std.mem.eql(u8, buffer[0..4], "hash")) {
+            print("hash={x}\n", .{board.hash});
+            continue;
+        }
+
         if (std.mem.eql(u8, buffer[0..4], "king")) {
             const can_capture_king = board.is_check_on_opp();
             print("can_capture_king={}\n", .{can_capture_king});
@@ -205,22 +213,23 @@ pub fn loop() !void {
         ) {
             var stats = Stats{};
             const start = std.time.nanoTimestamp();
-            const minmax = board.minmax(0, 32000, -32000, &stats);
+            const mm = minmax(&board, &stats);
             const end = std.time.nanoTimestamp();
             const elapsed = @divFloor(end-start, 1_000_000_000);
             const total_evals: i64 = @intCast(stats.evals[ 0]);
             const per_eval = @divFloor(end-start, total_evals);
-            const move = minmax.move orelse unreachable;
-            const score = minmax.score;
+            const move = mm.move orelse unreachable;
+            const score = mm.score;
             prev_board = board;
             board = board.fork_with_move(move);
             highlight.reset();
             highlight.add(move.orig);
             highlight.add(move.dest);
-            try clear();
+            // try clear();
             print_board(&board, &highlight);
             print("{s}>{s} play\n", .{green, reset});
             print("evaluated\n", .{});
+            print("  cache {d:>9}\n", .{stats.evals[15]});
             print("  d=3  {d:>10}\n", .{stats.evals[ 3]});
             print("  d=4  {d:>10}\n", .{stats.evals[ 4]});
             print("  d=5  {d:>10}\n", .{stats.evals[ 5]});

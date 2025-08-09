@@ -1,9 +1,10 @@
 const std = @import("std");
 const Board = @import("board.zig").Board;
 const Piece = @import("board.zig").Piece;
-const Stats = @import("board.zig").Stats;
 const Pos = @import("pos.zig").Pos;
 const Move = @import("pos.zig").Move;
+const minmax = @import("minmax.zig").minmax;
+const Stats = @import("minmax.zig").Stats;
 
 var board: Board = undefined;
 var board_prev: Board = undefined;
@@ -39,14 +40,14 @@ pub export fn move_legal(index0: i32, index1: i32) i32 {
 }
 
 pub export fn autoplay() void {
-    var stats = Stats{};
     // const start = std.time.nanoTimestamp();
-    const minmax = board.minmax(0, 32000, -32000, &stats);
+    var stats = Stats{};
+    const mm = minmax(&board, &stats);
     // const end = std.time.nanoTimestamp();
     // const elapsed = @divFloor(end-start, 1_000_000_000);
     // const total_evals: i64 = @intCast(stats.evals[ 0]);
     // const per_eval = @divFloor(end-start, total_evals);
-    const move = minmax.move orelse unreachable;
+    const move = mm.move orelse unreachable;
     // const score = minmax.score;
     // prev_board = board;
     board = board.fork_with_move(move);
