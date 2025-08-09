@@ -69,13 +69,13 @@ pub const Board = struct {
             const piece = switch(char) {
                 'p' => Piece.PAWN1,
                 'r' => Piece.ROOK1,
-                'h' => Piece.KNIG1,
+                'n' => Piece.KNIG1,
                 'b' => Piece.BISH1,
                 'q' => Piece.QUEN1,
                 'k' => Piece.KING1,
                 'P' => Piece.PAWN2,
                 'R' => Piece.ROOK2,
-                'H' => Piece.KNIG2,
+                'N' => Piece.KNIG2,
                 'B' => Piece.BISH2,
                 'Q' => Piece.QUEN2,
                 'K' => Piece.KING2,
@@ -97,13 +97,13 @@ pub const Board = struct {
             str[i] = switch(piece) {
                 Piece.PAWN1 => 'p',
                 Piece.ROOK1 => 'r',
-                Piece.KNIG1 => 'h',
+                Piece.KNIG1 => 'n',
                 Piece.BISH1 => 'b',
                 Piece.QUEN1 => 'q',
                 Piece.KING1 => 'k',
                 Piece.PAWN2 => 'P',
                 Piece.ROOK2 => 'R',
-                Piece.KNIG2 => 'H',
+                Piece.KNIG2 => 'N',
                 Piece.BISH2 => 'B',
                 Piece.QUEN2 => 'Q',
                 Piece.KING2 => 'K',
@@ -163,14 +163,14 @@ pub const Board = struct {
         self: *Board,
     ) void {
         self.load_from_string(
-            "RHBQKBHR" ++
+            "RNBQKBNR" ++
             "PPPPPPPP" ++
             "--------" ++
             "--------" ++
             "--------" ++
             "--------" ++
             "pppppppp" ++
-            "rhbqkbhr"
+            "rnbqkbnr"
         );
     }
 
@@ -178,14 +178,14 @@ pub const Board = struct {
         self: *Board,
     ) void {
         self.load_from_string(
-            "RHB-KBHR" ++
+            "RNB-KBNR" ++
             "P-P-PPPP" ++
             "--------" ++
-            "-hQp----" ++
+            "-nQp----" ++
             "q-P-----" ++
             "----p---" ++
             "pp---ppp" ++
-            "r-b-kbhr"
+            "r-b-kbnr"
         );
     }
 
