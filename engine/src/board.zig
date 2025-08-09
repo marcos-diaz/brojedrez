@@ -31,8 +31,7 @@ pub const Board = struct {
     hash: u64 = 0,
     turn: Player = Player.PLAYER1,
     n_pieces: u8 = 32,
-    last_p1_move_hot: bool = false,
-    last_p2_move_hot: bool = false,
+    heat: u4 = 3,
     p1_king_moved: bool = false,
     p1_rook_short_moved: bool = false,
     p1_rook_long_moved: bool = false,
@@ -120,8 +119,7 @@ pub const Board = struct {
             .hash=self.hash,
             .turn=self.turn,
             .n_pieces=self.n_pieces,
-            .last_p1_move_hot=self.last_p1_move_hot,
-            .last_p2_move_hot=self.last_p2_move_hot,
+            .heat=self.heat,
             .p1_pawns=self.p1_pawns,
             .p1_rooks=self.p1_rooks,
             .p1_knigs=self.p1_knigs,
@@ -143,8 +141,7 @@ pub const Board = struct {
     ) void {
         self.turn = Player.PLAYER1;
         self.n_pieces = 32;
-        self.last_p1_move_hot = false;
-        self.last_p2_move_hot = false;
+        self.heat=self.heat;
         self.p1_pawns = BoardMask{};
         self.p1_rooks = BoardMask{};
         self.p1_knigs = BoardMask{};
@@ -303,9 +300,13 @@ pub const Board = struct {
         if (captured) self.n_pieces -= 1;
         const pawn_walk = self.n_pieces < 12 and (piece==Piece.PAWN1 or piece==Piece.PAWN2);
         const is_hot = captured or pawn_walk or self.is_check_on_opp();
-        const p1 = self.turn == Player.PLAYER1;
-        if ( p1) self.last_p1_move_hot = is_hot;
-        if (!p1) self.last_p2_move_hot = is_hot;
+        if (!is_hot and self.heat > 0) self.heat -= 1;
+        if (is_hot and self.heat < 3) self.heat += 1;
+
+        // const p1 = self.turn == Player.PLAYER1;
+        // if ( p1) self.last_p1_move_hot = is_hot;
+        // if (!p1) self.last_p2_move_hot = is_hot;
+
         // Castling.
         if (piece == Piece.KING1) {
             self.p1_king_moved = true;
@@ -660,45 +661,24 @@ pub const Board = struct {
         self: *Board,
     ) i16 {
         var score: i16 = 0;
-        for (0..self.p1_pawns.count()) |_| {
-            const pos = self.p1_pawns.next();
-            score += @intFromEnum(PieceValue.PAWN) + tables.pawn_score[pos.reverse().index];
-        }
-        for (0..self.p2_pawns.count()) |_| {
-            const pos = self.p2_pawns.next();
-            score -= @intFromEnum(PieceValue.PAWN) + tables.pawn_score[pos.index];
-        }
-        for (0..self.p1_knigs.count()) |_| {
-            const pos = self.p1_knigs.next();
-            score += @intFromEnum(PieceValue.KNIGHT) + tables.piece_score[pos.reverse().index];
-        }
-        for (0..self.p2_knigs.count()) |_| {
-            const pos = self.p2_knigs.next();
-            score -= @intFromEnum(PieceValue.KNIGHT) + tables.piece_score[pos.index];
-        }
-        for (0..self.p1_bishs.count()) |_| {
-            const pos = self.p1_bishs.next();
-            score += @intFromEnum(PieceValue.BISHOP) + tables.piece_score[pos.reverse().index];
-        }
-        for (0..self.p2_bishs.count()) |_| {
-            const pos = self.p2_bishs.next();
-            score -= @intFromEnum(PieceValue.BISHOP) + tables.piece_score[pos.index];
-        }
-        for (0..self.p1_rooks.count()) |_| {
-            const pos = self.p1_rooks.next();
-            score += @intFromEnum(PieceValue.ROOK) + tables.piece_score[pos.reverse().index];
-        }
-        for (0..self.p2_rooks.count()) |_| {
-            const pos = self.p2_rooks.next();
-            score -= @intFromEnum(PieceValue.ROOK) + tables.piece_score[pos.index];
-        }
-        for (0..self.p1_quens.count()) |_| {
-            const pos = self.p1_quens.next();
-            score += @intFromEnum(PieceValue.QUEEN) + tables.piece_score[pos.reverse().index];
-        }
-        for (0..self.p2_quens.count()) |_| {
-            const pos = self.p2_quens.next();
-            score -= @intFromEnum(PieceValue.QUEEN) + tables.piece_score[pos.index];
+        for (0..64) |index| {
+            const pos = Pos.from_int(@intCast(index));
+            const piece = self.get(pos);
+            switch (piece) {
+                Piece.PAWN1 => score += @intFromEnum(PieceValue.PAWN)   + tables.pawn_score[pos.reverse().index],
+                Piece.PAWN2 => score -= @intFromEnum(PieceValue.PAWN)   + tables.pawn_score[pos.index],
+                Piece.KNIG1 => score += @intFromEnum(PieceValue.KNIGHT) + tables.piece_score[pos.reverse().index],
+                Piece.KNIG2 => score -= @intFromEnum(PieceValue.KNIGHT) + tables.piece_score[pos.index],
+                Piece.BISH1 => score += @intFromEnum(PieceValue.BISHOP) + tables.piece_score[pos.reverse().index],
+                Piece.BISH2 => score -= @intFromEnum(PieceValue.BISHOP) + tables.piece_score[pos.index],
+                Piece.ROOK1 => score += @intFromEnum(PieceValue.ROOK)   + tables.piece_score[pos.reverse().index],
+                Piece.ROOK2 => score -= @intFromEnum(PieceValue.ROOK)   + tables.piece_score[pos.index],
+                Piece.QUEN1 => score += @intFromEnum(PieceValue.QUEEN)  + tables.piece_score[pos.reverse().index],
+                Piece.QUEN2 => score -= @intFromEnum(PieceValue.QUEEN)  + tables.piece_score[pos.index],
+                Piece.KING1 => {},
+                Piece.KING2 => {},
+                Piece.NONE => {},
+            }
         }
         return score;
     }
