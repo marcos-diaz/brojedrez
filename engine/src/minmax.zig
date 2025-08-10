@@ -14,7 +14,6 @@ pub const Stats = struct {
     total: u32 = 0,
     evals: [16]u32 = .{0} ** 16,
     prune: [16]u32 = .{0} ** 16,
-    history: MoveList = MoveList{},
 
     pub fn reset(
         self: *Stats,
@@ -22,7 +21,6 @@ pub const Stats = struct {
         self.total = 0;
         self.evals = .{0} ** 16;
         self.prune = .{0} ** 16;
-        self.history = MoveList{};
     }
 };
 
@@ -32,7 +30,6 @@ pub fn minmax(
 ) MoveAndScore {
     // var cache = Cache{};
     // cache.reset();
-    // const ms: MoveAndScore = MoveAndScore{.score=0, .move=null};
     return minmax_node(board, 0, 32000, -32000, stats);
 }
 
@@ -113,6 +110,11 @@ pub fn minmax_node(
         best.score = 0;
         return best;
     }
+    // Draw by repetition.
+    if (board.hashlist.last_was_duplicated) {
+        best.score = 0;
+        return best;
+    }
     // Iterate moves.
     legal.sort();
     // legal.sort_with_priority(path.data[depth]);
@@ -148,8 +150,8 @@ pub fn minmax_node(
             best.move = move;
             best.score = candidate.score;
             best.score_defined = true;
-            best.path = candidate.path;
-            best.path.add(move);
+            // best.path = candidate.path;
+            // best.path.add(move);
             if (board.turn == Player.PLAYER1) {
                 new_best_max = candidate.score;
             } else {
@@ -161,17 +163,17 @@ pub fn minmax_node(
     //     CacheEntry{.hash=board.hash, .best=best},
     //     board.turn==Player.PLAYER2
     // );
-    if (depth == 0) best.path.reverse();
+    // if (depth == 0) best.path.reverse();
     return best;
 }
 
 
     // const DEPTH = .{4, 5, 5, 8};  // 1200+
-    // const DEPTH = .{4, 6, 6, 8};  // 1500+3.6  1600=0.6
-    // const DEPTH = .{4, 6, 6, 10};  // 1600=  1700-P4.9  1700-P2.1
+    const DEPTH = .{4, 6, 6, 8};  // 1500+3.6  1500-P4 1600=0.6
+    // const DEPTH = .{4, 6, 6, 10};  // 1600=  1500-P10
     // const DEPTH = .{5, 7, 7, 7};  // 1700+P11  1700-P6
     // const DEPTH = .{4, 6, 7, 9};  // 1700-P20
-    const DEPTH = .{5, 7, 7, 8};
+    // const DEPTH = .{5, 7, 7, 8};
 
     // EASY ???
     // 1200+++ 1300- (very fast)

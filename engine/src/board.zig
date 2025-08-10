@@ -29,6 +29,7 @@ pub const PieceValue = enum(i16) {
 
 pub const Board = struct {
     hash: u64 = 0,
+    hashlist: HashList = HashList{},
     turn: Player = Player.PLAYER1,
     n_pieces: u8 = 32,
     heat: u4 = 3,
@@ -116,22 +117,23 @@ pub const Board = struct {
         self: *Board,
     ) Board {
         const board = Board{
-            .hash=self.hash,
-            .turn=self.turn,
-            .n_pieces=self.n_pieces,
-            .heat=self.heat,
-            .p1_pawns=self.p1_pawns,
-            .p1_rooks=self.p1_rooks,
-            .p1_knigs=self.p1_knigs,
-            .p1_bishs=self.p1_bishs,
-            .p1_quens=self.p1_quens,
-            .p1_kings=self.p1_kings,
-            .p2_pawns=self.p2_pawns,
-            .p2_rooks=self.p2_rooks,
-            .p2_knigs=self.p2_knigs,
-            .p2_bishs=self.p2_bishs,
-            .p2_quens=self.p2_quens,
-            .p2_kings=self.p2_kings,
+            .hash = self.hash,
+            .hashlist = self.hashlist,
+            .turn = self.turn,
+            .n_pieces = self.n_pieces,
+            .heat = self.heat,
+            .p1_pawns = self.p1_pawns,
+            .p1_rooks = self.p1_rooks,
+            .p1_knigs = self.p1_knigs,
+            .p1_bishs = self.p1_bishs,
+            .p1_quens = self.p1_quens,
+            .p1_kings = self.p1_kings,
+            .p2_pawns = self.p2_pawns,
+            .p2_rooks = self.p2_rooks,
+            .p2_knigs = self.p2_knigs,
+            .p2_bishs = self.p2_bishs,
+            .p2_quens = self.p2_quens,
+            .p2_kings = self.p2_kings,
         };
         return board;
     }
@@ -175,16 +177,31 @@ pub const Board = struct {
         self: *Board,
     ) void {
         self.load_from_string(
-            "RNB-KBNR" ++
-            "P-P-PPPP" ++
-            "--------" ++
-            "-nQp----" ++
-            "q-P-----" ++
-            "----p---" ++
-            "pp---ppp" ++
-            "r-b-kbnr"
+            "R-------" ++
+            "P---K-PP" ++
+            "--P-B---" ++
+            "----n---" ++
+            "------p-" ++
+            "-------p" ++
+            "----k---" ++
+            "---r----"
         );
     }
+
+    // pub fn setup(
+    //     self: *Board,
+    // ) void {
+    //     self.load_from_string(
+    //         "RNB-KBNR" ++
+    //         "P-P-PPPP" ++
+    //         "--------" ++
+    //         "-nQp----" ++
+    //         "q-P-----" ++
+    //         "----p---" ++
+    //         "pp---ppp" ++
+    //         "r-b-kbnr"
+    //     );
+    // }
 
     // pub fn setup(
     //     self: *Board,
@@ -339,6 +356,7 @@ pub const Board = struct {
         }
         // After move.
         self.switch_turn();
+        self.hashlist.put(self.hash);
     }
 
     pub fn get_p1_mask(
@@ -692,5 +710,30 @@ pub const Board = struct {
             if (piece == Piece.NONE) continue;
             self.hash ^= tables.piece_hash[@intFromEnum(piece)][pos.index];
         }
+    }
+};
+
+const HashList = struct {
+    hashes: [8]u64 = .{0} ** 8,
+    index: u3 = 0,
+    last_was_duplicated: bool = false,
+
+    pub fn put (
+        self: *HashList,
+        hash: u64,
+    ) void {
+        self.last_was_duplicated = self.has(hash);
+        self.hashes[self.index] = hash;
+        self.index +%= 1;
+    }
+
+    pub fn has (
+        self: *HashList,
+        hash: u64,
+    ) bool {
+        for (0..8) |i| {
+            if (self.hashes[i] == hash) return true;
+        }
+        return false;
     }
 };

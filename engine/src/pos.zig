@@ -155,6 +155,6 @@ pub const MoveAndScore = struct {
     move: ?Move,
     score: i16,
     score_defined: bool = false,
-    path: MoveListShort = MoveListShort{},
+    // path: MoveListShort = MoveListShort{},
 };
 
