@@ -101,12 +101,53 @@ pub const MoveList = struct {
     ) void {
         const slice = self.data[0..self.len];
         const compare = struct {
-            fn compare(context: void, a: Move, b: Move) bool {
-                _ = context;
+            fn compare(_: void, a: Move, b: Move) bool {
                 return a.capture_score > b.capture_score;
             }
         }.compare;
         std.mem.sort(Move, slice, {}, compare);
+    }
+
+    pub fn sort_with_priority(
+        self: *MoveList,
+        priority: Move,
+    ) void {
+        const slice = self.data[0..self.len];
+        const compare = struct {
+            fn compare(priority_move: *const Move, a: Move, b: Move) bool {
+                if (a.eq(priority_move)) return true;
+                if (b.eq(priority_move)) return false;
+                return a.capture_score > b.capture_score;
+            }
+        }.compare;
+        std.mem.sort(Move, slice, &priority, compare);
+    }
+};
+
+pub const MoveListShort = struct {
+    len: u8 = 0,
+    data: [10]Move = undefined,
+
+    pub fn add(
+        self: *MoveListShort,
+        move: Move,
+    ) void {
+        self.data[self.len] = move;
+        self.len += 1;
+    }
+
+    pub fn reverse(
+        self: *MoveListShort)
+    void {
+        var i: usize = 0;
+        var j: usize = self.len - 1;
+        while (i < j) {
+            const temp = self.data[i];
+            self.data[i] = self.data[j];
+            self.data[j] = temp;
+            i += 1;
+            j -= 1;
+        }
     }
 };
 
@@ -114,5 +155,6 @@ pub const MoveAndScore = struct {
     move: ?Move,
     score: i16,
     score_defined: bool = false,
+    path: MoveListShort = MoveListShort{},
 };
 

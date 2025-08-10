@@ -576,7 +576,6 @@ pub const Board = struct {
                 movelist.add(move);
             }
         }
-        movelist.sort();
         return movelist;
     }
 

@@ -2,8 +2,10 @@ const std = @import("std");
 const print = std.debug.print;
 const Board = @import("board.zig").Board;
 const Player = @import("board.zig").Player;
-const MoveList = @import("pos.zig").MoveList;
-const MoveAndScore = @import("pos.zig").MoveAndScore;
+const _pos = @import("pos.zig");
+const MoveList = _pos.MoveList;
+const MoveListShort = _pos.MoveListShort;
+const MoveAndScore = _pos.MoveAndScore;
 const Cache = @import("cache.zig").Cache;
 const CacheEntry = @import("cache.zig").CacheEntry;
 const terminal = @import("terminal.zig");
@@ -13,6 +15,15 @@ pub const Stats = struct {
     evals: [16]u32 = .{0} ** 16,
     prune: [16]u32 = .{0} ** 16,
     history: MoveList = MoveList{},
+
+    pub fn reset(
+        self: *Stats,
+    ) void {
+        self.total = 0;
+        self.evals = .{0} ** 16;
+        self.prune = .{0} ** 16;
+        self.history = MoveList{};
+    }
 };
 
 pub fn minmax(
@@ -21,15 +32,32 @@ pub fn minmax(
 ) MoveAndScore {
     // var cache = Cache{};
     // cache.reset();
+    // const ms: MoveAndScore = MoveAndScore{.score=0, .move=null};
     return minmax_node(board, 0, 32000, -32000, stats);
 }
+
+// pub fn minmax_dynamic(
+//     board: *Board,
+//     stats: *Stats,
+// ) MoveAndScore {
+//     var result: MoveAndScore = MoveAndScore{.score=0, .move=null};
+//     // Half.
+//     const depth_half = @divTrunc(DEPTH[3], 2);
+//     result = minmax_node(board, 0, depth_half, 32000, -32000, stats, result.path);
+//     // Full.
+//     stats.*.reset();
+//     result = minmax_node(board, 0, DEPTH[3], 32000, -32000, stats, result.path);
+//     return result;
+// }
 
 pub fn minmax_node(
     board: *Board,
     depth: u4,
+    // depth_max: u4,
     best_min: i16,
     best_max: i16,
     stats: *Stats,
+    // path: MoveListShort,
     // cache: *Cache,
 ) MoveAndScore {
 
@@ -51,16 +79,16 @@ pub fn minmax_node(
     // const p1 = board.turn == Player.PLAYER1;
     // const opp_cold = if (p1) !board.last_p2_move_hot else !board.last_p1_move_hot;
     // const all_cold = !board.last_p1_move_hot and !board.last_p2_move_hot;
-    // var boost: u4 = 0;
-    // if (board.n_pieces <= 10) boost += 2;
-    // if (board.n_pieces <= 5) boost += 2;
+    var boost: u4 = 0;
+    if (board.n_pieces <= 12) boost += 1;
+    if (board.n_pieces <= 9) boost += 1;
+    if (board.n_pieces <= 6) boost += 1;
 
     const is_leaf = (
-        // depth == DEPTH_MAX
-        (depth == DEPTH[3]) or                     // Max.
-        (depth >= DEPTH[2] and board.heat < 3) or  // Not heat 3.
-        (depth >= DEPTH[1] and board.heat < 2) or  // Not heat 2.
-        (depth >= DEPTH[0] and board.heat < 1)     // Not heat 1.
+        (depth-boost == DEPTH[3]) or                     // Max.
+        (depth-boost >= DEPTH[2] and board.heat < 3) or  // Not heat 3.
+        (depth-boost >= DEPTH[1] and board.heat < 2) or  // Not heat 2.
+        (depth-boost >= DEPTH[0] and board.heat < 1)     // Not heat 1.
     );
     if (is_leaf) {
         const score = board.get_score();
@@ -79,13 +107,15 @@ pub fn minmax_node(
     var best: MoveAndScore = MoveAndScore{.move=null, .score=init_score};
     var new_best_min = best_min;
     var new_best_max = best_max;
-    const legal = board.get_legal_moves();
+    var legal = board.get_legal_moves();
     // Draw by stalemate.
     if (legal.len == 0 and !board.is_check_on_own()) {
         best.score = 0;
         return best;
     }
     // Iterate moves.
+    legal.sort();
+    // legal.sort_with_priority(path.data[depth]);
     for (0..legal.len) |i| {
         const move = legal.data[i];
         // terminal.indent(depth);
@@ -103,9 +133,11 @@ pub fn minmax_node(
         const candidate = minmax_node(
             &fork,
             depth+1,
+            // depth_max,
             new_best_min,
             new_best_max,
             stats,
+            // path,
         );
         // Compare scores.
         if (
@@ -116,6 +148,8 @@ pub fn minmax_node(
             best.move = move;
             best.score = candidate.score;
             best.score_defined = true;
+            best.path = candidate.path;
+            best.path.add(move);
             if (board.turn == Player.PLAYER1) {
                 new_best_max = candidate.score;
             } else {
@@ -127,15 +161,17 @@ pub fn minmax_node(
     //     CacheEntry{.hash=board.hash, .best=best},
     //     board.turn==Player.PLAYER2
     // );
+    if (depth == 0) best.path.reverse();
     return best;
 }
 
 
     // const DEPTH = .{4, 5, 5, 8};  // 1200+
     // const DEPTH = .{4, 6, 6, 8};  // 1500+3.6  1600=0.6
-    // const DEPTH = .{4, 6, 6, 10};  // 1600= 1700-P4.9
-    // const DEPTH = .{4, 6, 6, 10};  // 1600= 1700-P4.9
-    const DEPTH = .{5, 6, 7, 9};
+    // const DEPTH = .{4, 6, 6, 10};  // 1600=  1700-P4.9  1700-P2.1
+    // const DEPTH = .{5, 7, 7, 7};  // 1700+P11  1700-P6
+    // const DEPTH = .{4, 6, 7, 9};  // 1700-P20
+    const DEPTH = .{5, 7, 7, 8};
 
     // EASY ???
     // 1200+++ 1300- (very fast)

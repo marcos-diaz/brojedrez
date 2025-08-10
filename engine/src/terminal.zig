@@ -5,8 +5,7 @@ const Piece = @import("board.zig").Piece;
 const Player = @import("board.zig").Player;
 const Pos = @import("pos.zig").Pos;
 const Move = @import("pos.zig").Move;
-const minmax = @import("minmax.zig").minmax;
-const Stats = @import("minmax.zig").Stats;
+const minmax = @import("minmax.zig");
 
 const tables = @import("tables.zig");
 
@@ -211,9 +210,9 @@ pub fn loop() !void {
             (input_len == 5 and (std.mem.eql(u8, buffer[0..4], "play"))) or
             (input_len == 2 and buffer[0] == 'p')
         ) {
-            var stats = Stats{};
+            var stats = minmax.Stats{};
             const start = std.time.nanoTimestamp();
-            const mm = minmax(&board, &stats);
+            const mm = minmax.minmax(&board, &stats);
             const end = std.time.nanoTimestamp();
             const elapsed = @divFloor(end-start, 1_000_000_000);
             const total_evals: i64 = @intCast(stats.total);
@@ -242,12 +241,12 @@ pub fn loop() !void {
             print("{d:.1}M in {d} seconds\n", .{total, elapsed});
             print("{d} ns / node\n", .{per_eval});
             print("minmax {s} {d}\n", .{move.notation(), score});
-            // print("eval path {d}\n", .{stats.history.len});
-            // var i: usize = 0;
-            // while (i<stats.history.len) : (i+=2) {
-            //     print("  {s}, ", .{stats.history.data[i].notation()});
-            //     print("{s} \n", .{stats.history.data[i+1].notation()});
+            // print("path ", .{});
+            // for (0..mm.path.len) |i| {
+            //     const pathmove = mm.path.data[i];
+            //     print("{s} ", .{pathmove.notation()});
             // }
+            // print("\n", .{});
             continue;
         }
 
