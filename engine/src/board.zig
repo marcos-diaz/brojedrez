@@ -34,10 +34,10 @@ pub const Board = struct {
     n_pieces: u8 = 32,
     heat: u4 = 3,
     p1_king_moved: bool = false,
-    p1_rook_short_moved: bool = false,
-    p1_rook_long_moved: bool = false,
     p2_king_moved: bool = false,
+    p1_rook_short_moved: bool = false,
     p2_rook_short_moved: bool = false,
+    p1_rook_long_moved: bool = false,
     p2_rook_long_moved: bool = false,
     p1_pawns: BoardMask = BoardMask{},
     p1_rooks: BoardMask = BoardMask{},
@@ -134,6 +134,12 @@ pub const Board = struct {
             .p2_bishs = self.p2_bishs,
             .p2_quens = self.p2_quens,
             .p2_kings = self.p2_kings,
+            .p1_king_moved = self.p1_king_moved,
+            .p2_king_moved = self.p2_king_moved,
+            .p1_rook_short_moved = self.p1_rook_short_moved,
+            .p2_rook_short_moved = self.p2_rook_short_moved,
+            .p1_rook_long_moved = self.p1_rook_long_moved,
+            .p2_rook_long_moved = self.p2_rook_long_moved,
         };
         return board;
     }
@@ -177,14 +183,14 @@ pub const Board = struct {
         self: *Board,
     ) void {
         self.load_from_string(
-            "R-------" ++
-            "P---K-PP" ++
-            "--P-B---" ++
-            "----n---" ++
-            "------p-" ++
-            "-------p" ++
-            "----k---" ++
-            "---r----"
+            "----r---" ++
+            "---K--P-" ++
+            "q------P" ++
+            "P-B--P--" ++
+            "---P--Qp" ++
+            "p-----p-" ++
+            "-Rp--p--" ++
+            "-Q--r-k-"
         );
     }
 
@@ -316,24 +322,18 @@ pub const Board = struct {
         const captured = opp_mask.has(move.dest);
         if (captured) self.n_pieces -= 1;
         const pawn_walk = self.n_pieces < 12 and (piece==Piece.PAWN1 or piece==Piece.PAWN2);
+        // const is_king = (piece == Piece.KING1) or (piece == Piece.KING2);
         const is_hot = captured or pawn_walk or self.is_check_on_opp();
         if (!is_hot and self.heat > 0) self.heat -= 1;
         if (is_hot and self.heat < 3) self.heat += 1;
-
-        // const p1 = self.turn == Player.PLAYER1;
-        // if ( p1) self.last_p1_move_hot = is_hot;
-        // if (!p1) self.last_p2_move_hot = is_hot;
-
-        // Castling.
-        if (piece == Piece.KING1) {
-            self.p1_king_moved = true;
-        }
-        if (piece == Piece.ROOK1 and move.orig.index == 0) {
-            self.p1_rook_short_moved = true;
-        }
-        if (piece == Piece.ROOK1 and move.orig.index == 7) {
-            self.p1_rook_long_moved = true;
-        }
+        // Castling status.
+        if (piece == Piece.KING1) self.p1_king_moved = true;
+        if (piece == Piece.KING2) self.p2_king_moved = true;
+        if (piece == Piece.ROOK1 and move.orig.index == 0) self.p1_rook_short_moved = true;
+        if (piece == Piece.ROOK1 and move.orig.index == 7) self.p1_rook_long_moved = true;
+        if (piece == Piece.ROOK2 and move.orig.index == 56) self.p2_rook_short_moved = true;
+        if (piece == Piece.ROOK2 and move.orig.index == 63) self.p2_rook_long_moved = true;
+        // Casting process.
         if (piece == Piece.KING1 and move.orig.index==3 and move.dest.index == 1) {
             self.remove(Pos.from_int(0));
             self.add(Pos.from_int(2), Piece.ROOK1);
@@ -341,6 +341,14 @@ pub const Board = struct {
         if (piece == Piece.KING1 and move.orig.index==3 and move.dest.index == 5) {
             self.remove(Pos.from_int(7));
             self.add(Pos.from_int(4), Piece.ROOK1);
+        }
+        if (piece == Piece.KING2 and move.orig.index==59 and move.dest.index == 57) {
+            self.remove(Pos.from_int(56));
+            self.add(Pos.from_int(58), Piece.ROOK2);
+        }
+        if (piece == Piece.KING2 and move.orig.index==59 and move.dest.index == 61) {
+            self.remove(Pos.from_int(63));
+            self.add(Pos.from_int(60), Piece.ROOK2);
         }
         // Piece exchange.
         self.remove(move.orig);
@@ -416,8 +424,6 @@ pub const Board = struct {
         switch (piece) {
             Piece.PAWN1 => return self.get_moves_pawn(pos, false),
             Piece.PAWN2 => return self.get_moves_pawn(pos, true),
-            Piece.KING1 => return self.get_moves_king(pos, false),
-            Piece.KING2 => return self.get_moves_king(pos, true),
             Piece.KNIG1 => return self.get_moves_knight(pos, false),
             Piece.KNIG2 => return self.get_moves_knight(pos, true),
             Piece.ROOK1 => return self.get_moves_rook(pos, false),
@@ -426,6 +432,8 @@ pub const Board = struct {
             Piece.BISH2 => return self.get_moves_bishop(pos, true),
             Piece.QUEN1 => return self.get_moves_queen(pos, false),
             Piece.QUEN2 => return self.get_moves_queen(pos, true),
+            Piece.KING1 => return self.get_moves_king(pos, false, true),
+            Piece.KING2 => return self.get_moves_king(pos, true, true),
             Piece.NONE => return BoardMask{},
         }
     }
@@ -460,34 +468,22 @@ pub const Board = struct {
         self: *Board,
         pos: Pos,
         flip: bool,
+        castle: bool,
     ) BoardMask {
         var moves = tables.king_moves[pos.index];
         var own_mask = if (flip) self.get_p2_mask() else self.get_p1_mask();
         moves.remove_mask(&own_mask);
         // Castling.
         const p1 = self.turn == Player.PLAYER1;
-        if (p1) {
-            // Castling P1 short.
-            if (
-                !self.p1_king_moved and
-                !self.p1_rook_short_moved and
-                self.get(Pos.from_int(1)) == Piece.NONE and       // Check all under threat.
-                self.get(Pos.from_int(2)) == Piece.NONE
-            ) {
-                moves.add(Pos.from_int(1));
-            }
-            // Castling P1 long.
-            if (
-                !self.p1_king_moved and
-                !self.p1_rook_long_moved and
-                self.get(Pos.from_int(4)) == Piece.NONE and
-                self.get(Pos.from_int(5)) == Piece.NONE and
-                self.get(Pos.from_int(6)) == Piece.NONE
-            ) {
-                moves.add(Pos.from_int(5));
+        if (castle) {
+            if (p1) {
+                if (self.can_castle(false, false)) moves.add(Pos.from_int(1)); // Short.
+                if (self.can_castle(false, true)) moves.add(Pos.from_int(5));  // Long.
+            } else {
+                if (self.can_castle(true, false)) moves.add(Pos.from_int(57)); // Short.
+                if (self.can_castle(true, true)) moves.add(Pos.from_int(61));  // Long.
             }
         }
-        // TODO: P2.
         return moves;
     }
 
@@ -597,6 +593,72 @@ pub const Board = struct {
         return movelist;
     }
 
+    pub fn can_castle(
+        self: *Board,
+        p2: bool,
+        long: bool,
+    ) bool {
+        if (!p2) {
+            if (!long) {
+                return (
+                    // P1 short.
+                    !self.p1_king_moved and
+                    !self.p1_rook_short_moved and
+                    self.get(Pos.from_int(0)) == Piece.ROOK1 and
+                    self.get(Pos.from_int(1)) == Piece.NONE and
+                    self.get(Pos.from_int(2)) == Piece.NONE and
+                    self.get(Pos.from_int(3)) == Piece.KING1 and
+                    !self.is_attacked(Pos.from_int(1), false) and
+                    !self.is_attacked(Pos.from_int(2), false) and
+                    !self.is_attacked(Pos.from_int(3), false)
+                );
+            } else {
+                return (
+                    // P1 long.
+                    !self.p1_king_moved and
+                    !self.p1_rook_long_moved and
+                    self.get(Pos.from_int(3)) == Piece.KING1 and
+                    self.get(Pos.from_int(4)) == Piece.NONE and
+                    self.get(Pos.from_int(5)) == Piece.NONE and
+                    self.get(Pos.from_int(6)) == Piece.NONE and
+                    self.get(Pos.from_int(7)) == Piece.ROOK1 and
+                    !self.is_attacked(Pos.from_int(3), false) and
+                    !self.is_attacked(Pos.from_int(4), false) and
+                    !self.is_attacked(Pos.from_int(5), false)
+                );
+            }
+        } else {
+            if (!long) {
+                return (
+                    // P2 short.
+                    !self.p2_king_moved and
+                    !self.p2_rook_short_moved and
+                    self.get(Pos.from_int(56)) == Piece.ROOK2 and
+                    self.get(Pos.from_int(57)) == Piece.NONE and
+                    self.get(Pos.from_int(58)) == Piece.NONE and
+                    self.get(Pos.from_int(59)) == Piece.KING2 and
+                    !self.is_attacked(Pos.from_int(57), true) and
+                    !self.is_attacked(Pos.from_int(58), true) and
+                    !self.is_attacked(Pos.from_int(59), true)
+                );
+            } else {
+                return (
+                    // P2 long.
+                    !self.p2_king_moved and
+                    !self.p2_rook_long_moved and
+                    self.get(Pos.from_int(59)) == Piece.KING2 and
+                    self.get(Pos.from_int(60)) == Piece.NONE and
+                    self.get(Pos.from_int(61)) == Piece.NONE and
+                    self.get(Pos.from_int(62)) == Piece.NONE and
+                    self.get(Pos.from_int(63)) == Piece.ROOK2 and
+                    !self.is_attacked(Pos.from_int(59), true) and
+                    !self.is_attacked(Pos.from_int(60), true) and
+                    !self.is_attacked(Pos.from_int(61), true)
+                );
+            }
+        }
+    }
+
     pub fn fork_with_move(
         self: *Board,
         move: Move,
@@ -615,40 +677,48 @@ pub const Board = struct {
         );
     }
 
+    pub fn is_attacked(
+        self: *Board,
+        pos: Pos,
+        p2: bool,
+    ) bool {
+        // Attacked by knight.
+        const moves_h = tables.knight_moves[pos.index];
+        const location_h = if (p2) self.p1_knigs else self.p2_knigs;
+        if (moves_h.mask & location_h.mask > 0) return true;
+        // Attacked by queen.
+        const moves_q = self.get_moves_queen(pos, p2);
+        const location_q = if (p2) self.p1_quens else self.p2_quens;
+        if (moves_q.mask & location_q.mask > 0) return true;
+        // Attacked by bishop.
+        const moves_b = self.get_moves_bishop(pos, p2);
+        const location_b = if (p2) self.p1_bishs else self.p2_bishs;
+        if (moves_b.mask & location_b.mask > 0) return true;
+        // Attacked by rook.
+        const moves_r = self.get_moves_rook(pos, p2);
+        const location_r = if (p2) self.p1_rooks else self.p2_rooks;
+        if (moves_r.mask & location_r.mask > 0) return true;
+        // Attacked by pawn.
+        const moves_p = (
+            if (p2) tables.pawn_captures_p2[pos.index]
+            else tables.pawn_captures_p1[pos.index]
+        );
+        const location_p = if (p2) self.p1_pawns else self.p2_pawns;
+        if (moves_p.mask & location_p.mask > 0) return true;
+        // Attacked by king.
+        const moves_k = self.get_moves_king(pos, p2, false);
+        const location_k = if (p2) self.p1_kings else self.p2_kings;
+        if (moves_k.mask & location_k.mask > 0) return true;
+        // Not attacked.
+        return false;
+    }
+
     pub fn is_check(
         self: *Board,
         p2: bool,
     ) bool {
         const king_pos = self.get_king_pos(p2);
-        // Check by knight.
-        const moves_h = tables.knight_moves[king_pos.index];
-        const location_h = if (p2) self.p1_knigs else self.p2_knigs;
-        if (moves_h.mask & location_h.mask > 0) return true;
-        // Check by queen.
-        const moves_q = self.get_moves_queen(king_pos, p2);
-        const location_q = if (p2) self.p1_quens else self.p2_quens;
-        if (moves_q.mask & location_q.mask > 0) return true;
-        // Check by bishop.
-        const moves_b = self.get_moves_bishop(king_pos, p2);
-        const location_b = if (p2) self.p1_bishs else self.p2_bishs;
-        if (moves_b.mask & location_b.mask > 0) return true;
-        // Check by rook.
-        const moves_r = self.get_moves_rook(king_pos, p2);
-        const location_r = if (p2) self.p1_rooks else self.p2_rooks;
-        if (moves_r.mask & location_r.mask > 0) return true;
-        // Check by pawn.
-        const moves_p = (
-            if (p2) tables.pawn_captures_p2[king_pos.index]
-            else tables.pawn_captures_p1[king_pos.index]
-        );
-        const location_p = if (p2) self.p1_pawns else self.p2_pawns;
-        if (moves_p.mask & location_p.mask > 0) return true;
-        // Check by king. (Necessary to filter illegal moves).
-        const moves_k = self.get_moves_king(king_pos, p2);
-        const location_k = if (p2) self.p1_kings else self.p2_kings;
-        if (moves_k.mask & location_k.mask > 0) return true;
-        // No check.
-        return false;
+        return self.is_attacked(king_pos, p2);
     }
 
     pub fn is_check_on_own(
@@ -678,25 +748,38 @@ pub const Board = struct {
         self: *Board,
     ) i16 {
         var score: i16 = 0;
+        // Piece value + position.
         for (0..64) |index| {
             const pos = Pos.from_int(@intCast(index));
             const piece = self.get(pos);
             switch (piece) {
-                Piece.PAWN1 => score += @intFromEnum(PieceValue.PAWN)   + tables.pawn_score[pos.reverse().index],
-                Piece.PAWN2 => score -= @intFromEnum(PieceValue.PAWN)   + tables.pawn_score[pos.index],
-                Piece.KNIG1 => score += @intFromEnum(PieceValue.KNIGHT) + tables.piece_score[pos.reverse().index],
-                Piece.KNIG2 => score -= @intFromEnum(PieceValue.KNIGHT) + tables.piece_score[pos.index],
-                Piece.BISH1 => score += @intFromEnum(PieceValue.BISHOP) + tables.piece_score[pos.reverse().index],
-                Piece.BISH2 => score -= @intFromEnum(PieceValue.BISHOP) + tables.piece_score[pos.index],
-                Piece.ROOK1 => score += @intFromEnum(PieceValue.ROOK)   + tables.piece_score[pos.reverse().index],
-                Piece.ROOK2 => score -= @intFromEnum(PieceValue.ROOK)   + tables.piece_score[pos.index],
-                Piece.QUEN1 => score += @intFromEnum(PieceValue.QUEEN)  + tables.piece_score[pos.reverse().index],
-                Piece.QUEN2 => score -= @intFromEnum(PieceValue.QUEEN)  + tables.piece_score[pos.index],
-                Piece.KING1 => {},
-                Piece.KING2 => {},
                 Piece.NONE => {},
+                Piece.PAWN1 => score += @intFromEnum(PieceValue.PAWN)   + tables.pawn_score[pos.reverse().index],
+                Piece.KNIG1 => score += @intFromEnum(PieceValue.KNIGHT) + tables.piece_score[pos.reverse().index],
+                Piece.BISH1 => score += @intFromEnum(PieceValue.BISHOP) + tables.piece_score[pos.reverse().index],
+                Piece.ROOK1 => score += @intFromEnum(PieceValue.ROOK)   + tables.piece_score[pos.reverse().index],
+                Piece.QUEN1 => score += @intFromEnum(PieceValue.QUEEN)  + tables.piece_score[pos.reverse().index],
+                Piece.KING1 => {},
+                Piece.PAWN2 => score -= @intFromEnum(PieceValue.PAWN)   + tables.pawn_score[pos.index],
+                Piece.KNIG2 => score -= @intFromEnum(PieceValue.KNIGHT) + tables.piece_score[pos.index],
+                Piece.BISH2 => score -= @intFromEnum(PieceValue.BISHOP) + tables.piece_score[pos.index],
+                Piece.ROOK2 => score -= @intFromEnum(PieceValue.ROOK)   + tables.piece_score[pos.index],
+                Piece.QUEN2 => score -= @intFromEnum(PieceValue.QUEEN)  + tables.piece_score[pos.index],
+                Piece.KING2 => {},
             }
         }
+        // Pawn defense.
+        for (0..self.p1_pawns.count()) |_| {
+            const pawn_pos = self.p1_pawns.next();
+            const pawn_back = tables.pawn_defense[pawn_pos.index];
+            score += 25 * @popCount(self.p1_pawns.mask & pawn_back);
+        }
+        for (0..self.p2_pawns.count()) |_| {
+            const pawn_pos = self.p2_pawns.next();
+            const pawn_back = tables.pawn_defense[pawn_pos.reverse().index];
+            score -= 25 * @popCount(self.p2_pawns.mask & pawn_back);
+        }
+        // Result.
         return score;
     }
 
