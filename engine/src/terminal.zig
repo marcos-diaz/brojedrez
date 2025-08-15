@@ -228,7 +228,6 @@ pub fn loop() !void {
             print_board(&board, &highlight);
             print("{s}>{s} play\n", .{green, reset});
             print("evaluated\n", .{});
-            // print("  cache {d:>9}\n", .{stats.evals[15]});
             print("  d=3   {d:>9} {d:>9}\n", .{stats.evals[ 3], stats.prune[ 3]});
             print("  d=4   {d:>9} {d:>9}\n", .{stats.evals[ 4], stats.prune[ 4]});
             print("  d=5   {d:>9} {d:>9}\n", .{stats.evals[ 5], stats.prune[ 5]});
@@ -241,12 +240,12 @@ pub fn loop() !void {
             print("{d:.1}M in {d} seconds\n", .{total, elapsed});
             print("{d} ns / node\n", .{per_eval});
             print("minmax {s} {d}\n", .{move.notation(), score});
-            // print("path ", .{});
-            // for (0..mm.path.len) |i| {
-            //     const pathmove = mm.path.data[i];
-            //     print("{s} ", .{pathmove.notation()});
-            // }
-            // print("\n", .{});
+            print("path ", .{});
+            for (0..mm.path.len) |i| {
+                const pathmove = mm.path.data[i];
+                print("{s} ", .{pathmove.notation()});
+            }
+            print("\n", .{});
             continue;
         }
 

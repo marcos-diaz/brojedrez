@@ -3,6 +3,8 @@ const print = std.debug.print;
 const Board = @import("board.zig").Board;
 const Player = @import("board.zig").Player;
 const _pos = @import("pos.zig");
+const Pos = _pos.Pos;
+const Move = _pos.Move;
 const MoveList = _pos.MoveList;
 const MoveListShort = _pos.MoveListShort;
 const MoveAndScore = _pos.MoveAndScore;
@@ -30,7 +32,8 @@ pub fn minmax(
 ) MoveAndScore {
     // var cache = Cache{};
     // cache.reset();
-    return minmax_node(board, 0, 32000, -32000, stats);
+    var path = MoveListShort{};
+    return minmax_node(board, 0, 32000, -32000, stats, &path);
 }
 
 // pub fn minmax_dynamic(
@@ -54,7 +57,7 @@ pub fn minmax_node(
     best_min: i16,
     best_max: i16,
     stats: *Stats,
-    // path: MoveListShort,
+    path: *MoveListShort,
     // cache: *Cache,
 ) MoveAndScore {
 
@@ -73,19 +76,14 @@ pub fn minmax_node(
     //     }
     // }
 
-    // const p1 = board.turn == Player.PLAYER1;
-    // const opp_cold = if (p1) !board.last_p2_move_hot else !board.last_p1_move_hot;
-    // const all_cold = !board.last_p1_move_hot and !board.last_p2_move_hot;
     var boost: u4 = 0;
     if (board.n_pieces <= 12) boost += 1;
-    if (board.n_pieces <= 9) boost += 1;
-    if (board.n_pieces <= 6) boost += 1;
 
     const is_leaf = (
-        (depth-boost == DEPTH[3]) or                     // Max.
-        (depth-boost >= DEPTH[2] and board.heat < 3) or  // Not heat 3.
-        (depth-boost >= DEPTH[1] and board.heat < 2) or  // Not heat 2.
-        (depth-boost >= DEPTH[0] and board.heat < 1)     // Not heat 1.
+        (depth == DEPTH[3]) or                        // Max.
+        (depth >= DEPTH[2] and board.heat < 3) or     // Not heat 3.
+        (depth >= DEPTH[1] and board.heat < 2) or     // Not heat 2.
+        (depth >= DEPTH[0]+boost and board.heat < 1)  // Not heat 1.
     );
     if (is_leaf) {
         const score = board.get_score();
@@ -120,8 +118,15 @@ pub fn minmax_node(
     // legal.sort_with_priority(path.data[depth]);
     for (0..legal.len) |i| {
         const move = legal.data[i];
-        // terminal.indent(depth);
-        // print("{s}\n", .{move.notation()});
+        path.data[depth] = move;
+
+        // if (is_debug_path(depth, path)) {
+        //     terminal.indent(depth);
+        //     print("{s}\n", .{move.notation()});
+        // } else {
+        //     continue;
+        // }
+
 
         // Prune.
         if (best_min <= best_max) {
@@ -139,7 +144,7 @@ pub fn minmax_node(
             new_best_min,
             new_best_max,
             stats,
-            // path,
+            path,
         );
         // Compare scores.
         if (
@@ -150,8 +155,8 @@ pub fn minmax_node(
             best.move = move;
             best.score = candidate.score;
             best.score_defined = true;
-            // best.path = candidate.path;
-            // best.path.add(move);
+            best.path = candidate.path;
+            best.path.add(move);
             if (board.turn == Player.PLAYER1) {
                 new_best_max = candidate.score;
             } else {
@@ -163,90 +168,40 @@ pub fn minmax_node(
     //     CacheEntry{.hash=board.hash, .best=best},
     //     board.turn==Player.PLAYER2
     // );
-    // if (depth == 0) best.path.reverse();
+    if (depth == 0) best.path.reverse();
     return best;
+}
+
+fn is_debug_path(
+    depth: u4,
+    path: *MoveListShort,
+) bool {
+    var path_debug = MoveListShort{};
+    path_debug.add(Move.from_notation("b1c2"));
+    path_debug.add(Move.from_notation("a6c8"));
+    path_debug.add(Move.from_notation("d7d6"));
+    path_debug.add(Move.from_notation("e8d8"));
+
+    // if (depth > 3) return true;
+
+    for (0..depth+1) |d| {
+        const move = path_debug.data[d];
+        if (!path.*.data[d].eq(&move)) return false;
+    }
+    return true;
 }
 
 
     // const DEPTH = .{4, 5, 5, 8};  // 1200+
-    const DEPTH = .{4, 6, 6, 8};  // 1500+3.6  1500-P4 1600=0.6
-    // const DEPTH = .{4, 6, 6, 10};  // 1600=  1500-P10
-    // const DEPTH = .{5, 7, 7, 7};  // 1700+P11  1700-P6
+    // const DEPTH = .{4, 6, 6, 8};  // 1400+ 1500-
     // const DEPTH = .{4, 6, 7, 9};  // 1700-P20
-    // const DEPTH = .{5, 7, 7, 8};
+    // const DEPTH = .{5, 6, 7, 9}; // 1500+P11   too slow
 
-    // EASY ???
-    // 1200+++ 1300- (very fast)
-    // const DEPTH_COLD = 4;
-    // const DEPTH_HOT =  4;
-    // const DEPTH_MAX =  7;
+    // const DEPTH = .{4, 6, 6, 10};  // 1600+P2  1600-P1  1700-P4
+    // const DEPTH = .{4, 6, 7, 10};
+    // const DEPTH = .{5, 5, 5, 7};  // 1600+P1
+    // const DEPTH = .{5, 5, 5, 9};  // 1700=P2  1700-P4
+    // const DEPTH = .{5, 7, 7, 7};  // 1700-P15
 
-    // EASY ???
-    // 1300+ 1400+ (fast)
-    // const DEPTH_COLD = 4;
-    // const DEPTH_HOT =  5;
-    // const DEPTH_MAX =  7;
-
-    // NORMAL
-    // 1500++ 1600-+++ 1700- (fast-mid)
-    // const DEPTH_COLD = 4;
-    // const DEPTH_HOT =  5;
-    // const DEPTH_MAX =  9;
-
-    // HARD
-    // 1700+ 1800+ (mid)
-    // const DEPTH_COLD = 5;
-    // const DEPTH_HOT =  6;
-    // const DEPTH_MAX =  8;
-
-// 1800-
-// const DEPTH_COLD = 5;
-// const DEPTH_HOT =  5;
-// const DEPTH_MAX =  9;
-
-// 1800? but slow
-// const DEPTH_COLD = 5;
-// const DEPTH_HOT =  6;
-// const DEPTH_MAX =  9;
-
-// 1800-! 1700-
-// const DEPTH_COLD = 4;
-// const DEPTH_HOT =  5;
-// const DEPTH_MAX =  11;
-
-// const DEPTH_COLD = 5;
-// const DEPTH_HOT =  5;
-// const DEPTH_MAX =  8;
-
-// 1600+- (mid)
-// const DEPTH_COLD = 5;
-// const DEPTH_HOT =  5;
-// const DEPTH_MAX =  7;
-
-// 1600-
-// const DEPTH_COLD = 5;
-// const DEPTH_HOT =  5;
-// const DEPTH_MAX =  5;
-
-// 1400-+- 1500+ 1600=--
-// const DEPTH_COLD = 4;
-// const DEPTH_HOT =  6;
-// const DEPTH_MAX =  6;
-
-// 1500+(mobile) 1500+(mobile) 1600(browser)  1200-?????
-// const DEPTH_COLD = 5;
-// const DEPTH_HOT =  6;
-// const DEPTH_MAX =  6;
-
-// HARD
-// 1600+ 1700+(browser)   safari<=10s
-// const DEPTH_COLD = 5;
-// const DEPTH_HOT =  7;
-// const DEPTH_MAX =  7;
-
-// slow
-// const DEPTH_COLD = 5;
-// const DEPTH_HOT =  7;
-// const DEPTH_MAX =  9;
-
-
+// const DEPTH = .{5, 5, 7, 9};  //1600+P12
+const DEPTH = .{5, 6, 7, 8};
