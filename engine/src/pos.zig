@@ -70,6 +70,15 @@ pub const Move = struct {
     dest: Pos,
     capture_score: u6 = 0,
 
+    pub fn from_notation(
+        string: *const [4]u8,
+    ) Move {
+        return Move{
+            .orig = Pos.from_notation(string[0], string[1]),
+            .dest = Pos.from_notation(string[2], string[3]),
+        };
+    }
+
     pub fn notation(
         self: *const Move,
     ) [4]u8 {

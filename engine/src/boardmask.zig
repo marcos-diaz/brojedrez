@@ -6,6 +6,16 @@ pub const BoardMask = struct {
     mask: u64 = 0,
     next_index: u7 = 0,
 
+    pub fn from_string(
+       string: []const u8,
+    ) BoardMask {
+        var mask = BoardMask{};
+        for (0..64) |i| {
+            if (string[i] == '1') mask.add(Pos.from_int(@intCast(63-i)));
+        }
+        return mask;
+    }
+
     pub fn reset(
         self: *BoardMask,
     ) void {
