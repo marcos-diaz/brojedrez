@@ -15,6 +15,7 @@ pub const line_sink = get_line_sink();
 pub const line_rise = get_line_rise();
 pub const capture_score = get_capture_score();
 pub const piece_hash = get_piece_hash();
+pub const pawn_defense = get_pawn_defense();
 
 fn get_moves_pawn_all(
     flip: bool,
@@ -271,11 +272,11 @@ pub const piece_score: [64]i16 = .{
       5,   6,   7,   7,   7,   7,   6,   5,
       6,   7,   8,   8,   8,   8,   7,   6,
       7,   8,  10,  10,  10,  10,   8,   7,
-      7,   8,  10,  10,  10,  10,   8,   7,
-      7,   8,  10,  10,  10,  10,   8,   7,
+      7,   8,  10,  12,  12,  10,   8,   7,
+      7,   8,  10,  12,  12,  10,   8,   7,
       7,   8,  10,  10,  10,  10,   8,   7,
       6,   7,   8,   8,   8,   8,   7,   6,
-      0,   0,   0,   0,   0,   0,   0,   0,
+      0,   1,   2,   4,   4,   2,   1,   0,
 };
 
 fn get_capture_score() [14][14]u5 {
@@ -352,6 +353,37 @@ fn get_piece_hash() [13][64]u64 {
         for (0..64) |pos| {
             table[piece][pos] = rand.random().int(u64);
         }
+    }
+    return table;
+}
+
+fn get_pawn_defense(
+) [64]u64 {
+    @setEvalBranchQuota(100_000);
+    var table: [64]u64 = .{0} ** 64;
+    for (0..64) |_pos| {
+        var mask: u64 = 0;
+        const pos = Pos.from_int(@intCast(_pos));
+        for (0..64) |_back| {
+            const back = Pos.from_int(@intCast(_back));
+            // Left.
+            if (pos.col() < 7) {
+                if (pos.index >= 7) {
+                    if (back.index == pos.index-7) {
+                        mask |= 1 << back.index;
+                    }
+                }
+            }
+            // Right.
+            if (pos.col() > 0) {
+                if (pos.index >= 9) {
+                    if (back.index == pos.index-9) {
+                        mask |= 1 << back.index;
+                    }
+                }
+            }
+        }
+        table[pos.index] = mask;
     }
     return table;
 }

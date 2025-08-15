@@ -21,10 +21,10 @@ pub const Piece = enum {
 
 pub const PieceValue = enum(i16) {
     PAWN =     100,
-    KNIGHT =   400,
-    BISHOP =   500,
-    ROOK =     800,
-    QUEEN =   1500,
+    KNIGHT =   350,
+    BISHOP =   400,
+    ROOK =     600,
+    QUEEN =   1100,
 };
 
 pub const Board = struct {
