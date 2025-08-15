@@ -108,9 +108,13 @@ export class App {
       this.highlight_dest = undefined
       return
     } else {
-      this.turn = false
       const result = this.wasm.move_legal(this.selected, index)
-      if (result==0) {
+      if (result==false) {
+        this.selected = index
+        this.highlight_orig = index
+        this.highlight_dest = undefined
+      }
+      if (result==true) {
         this.selected = undefined
         this.highlight_orig = undefined
         this.refreshBoard()
@@ -124,9 +128,9 @@ export class App {
         this.highlight_orig = this.wasm.get_highlight_orig()
         this.highlight_dest = this.wasm.get_highlight_dest()
         this.refreshBoard()
+        this.turn = true
+        this.selected = undefined;
       }
-      this.turn = true
-      this.selected = undefined;
     }
   }
 }

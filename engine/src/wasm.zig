@@ -33,9 +33,9 @@ pub export fn move_legal(index0: i32, index1: i32) i32 {
     if (is_legal) {
         board_prev = board;
         board.move_to(move);
-        return 0;
+        return 1;
     }
-    return 1;
+    return 0;
 }
 
 pub export fn autoplay() void {
