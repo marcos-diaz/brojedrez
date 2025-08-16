@@ -51,6 +51,7 @@ export class App {
 
   init() {
     this.wasm.init()
+    this.wasm.setup()
     this.refreshBoard()
   }
 

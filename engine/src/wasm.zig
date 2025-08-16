@@ -14,6 +14,10 @@ pub export fn init() void {
     board = Board.init();
 }
 
+pub export fn setup() void {
+    board.setup();
+}
+
 pub export fn get(index: i32) i32 {
     const pos = Pos.from_int(@intCast(index));
     const result: i32 = @intFromEnum(board.get(pos));

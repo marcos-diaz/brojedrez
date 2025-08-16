@@ -39,6 +39,8 @@ pub const Board = struct {
     p2_rook_short_moved: bool = false,
     p1_rook_long_moved: bool = false,
     p2_rook_long_moved: bool = false,
+    p1_castled: bool = false,
+    p2_castled: bool = false,
     p1_pawns: BoardMask = BoardMask{},
     p1_rooks: BoardMask = BoardMask{},
     p1_knigs: BoardMask = BoardMask{},
@@ -140,6 +142,8 @@ pub const Board = struct {
             .p2_rook_short_moved = self.p2_rook_short_moved,
             .p1_rook_long_moved = self.p1_rook_long_moved,
             .p2_rook_long_moved = self.p2_rook_long_moved,
+            .p1_castled = self.p1_castled,
+            .p2_castled = self.p2_castled,
         };
         return board;
     }
@@ -337,18 +341,22 @@ pub const Board = struct {
         if (piece == Piece.KING1 and move.orig.index==3 and move.dest.index == 1) {
             self.remove(Pos.from_int(0));
             self.add(Pos.from_int(2), Piece.ROOK1);
+            self.p1_castled = true;
         }
         if (piece == Piece.KING1 and move.orig.index==3 and move.dest.index == 5) {
             self.remove(Pos.from_int(7));
             self.add(Pos.from_int(4), Piece.ROOK1);
+            self.p1_castled = true;
         }
         if (piece == Piece.KING2 and move.orig.index==59 and move.dest.index == 57) {
             self.remove(Pos.from_int(56));
             self.add(Pos.from_int(58), Piece.ROOK2);
+            self.p2_castled = true;
         }
         if (piece == Piece.KING2 and move.orig.index==59 and move.dest.index == 61) {
             self.remove(Pos.from_int(63));
             self.add(Pos.from_int(60), Piece.ROOK2);
+            self.p2_castled = true;
         }
         // Piece exchange.
         self.remove(move.orig);
@@ -779,6 +787,13 @@ pub const Board = struct {
             const pawn_back = tables.pawn_defense[pawn_pos.reverse().index];
             score -= 25 * @popCount(self.p2_pawns.mask & pawn_back);
         }
+        // Castling potential,
+        if (!self.p1_king_moved and !self.p1_rook_short_moved) score += 50;
+        if (!self.p1_king_moved and !self.p1_rook_long_moved) score += 50;
+        if (!self.p2_king_moved and !self.p2_rook_short_moved) score -= 50;
+        if (!self.p2_king_moved and !self.p2_rook_long_moved) score -= 50;
+        if (self.p1_castled) score += 200;
+        if (self.p2_castled) score -= 200;
         // Result.
         return score;
     }
