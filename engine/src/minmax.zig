@@ -109,7 +109,7 @@ pub fn minmax_node(
         return best;
     }
     // Draw by repetition.
-    if (board.hashlist.last_was_duplicated) {
+    if (depth > 0 and board.hashlist.last_was_duplicated) {
         best.score = 0;
         return best;
     }

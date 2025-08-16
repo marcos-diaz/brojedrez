@@ -349,7 +349,7 @@ fn get_piece_hash() [13][64]u64 {
     @setEvalBranchQuota(1_000_000);
     var table = std.mem.zeroes([13][64]u64);
     var rand = std.Random.DefaultPrng.init(0);
-    for (0..12) |piece| {
+    for (0..13) |piece| {
         for (0..64) |pos| {
             table[piece][pos] = rand.random().int(u64);
         }

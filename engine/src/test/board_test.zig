@@ -2,7 +2,9 @@ const expect = @import("std").testing.expect;
 const warn = @import("std").log.warn;
 const Board = @import("../board.zig").Board;
 const Player = @import("../board.zig").Player;
-const Pos = @import("../pos.zig").Pos;
+const _pos = @import("../pos.zig");
+const Pos = _pos.Pos;
+const Move = _pos.Move;
 const terminal = @import("../terminal.zig");
 
 test "check" {
@@ -164,4 +166,49 @@ test "castling" {
     try expect(board.can_castle(false, true) == false);
     try expect(board.can_castle(true, false) == true);
     try expect(board.can_castle(true, true) == false);
+}
+
+test "hash" {
+    var board = Board{};
+    board.load_from_string(
+        "--------" ++
+        "--------" ++
+        "--------" ++
+        "--------" ++
+        "--------" ++
+        "--------" ++
+        "--------" ++
+        "k-------"
+    );
+    const hash = board.hash;
+    board.move_to(Move.from_notation("a1a2"));
+    try expect(board.hash != hash);
+    board.move_to(Move.from_notation("a2b2"));
+    try expect(board.hash != hash);
+    board.move_to(Move.from_notation("b2a1"));
+    try expect(board.hash == hash);
+}
+
+test "repetition" {
+    var board = Board{};
+    board.load_from_string(
+        "--------" ++
+        "--------" ++
+        "--------" ++
+        "--------" ++
+        "--------" ++
+        "--------" ++
+        "--------" ++
+        "k------K"
+    );
+    board.move_to(Move.from_notation("a1a2"));
+    board.move_to(Move.from_notation("b1b2"));
+    board.move_to(Move.from_notation("a2a1"));
+    board.move_to(Move.from_notation("h2h1"));  // 2st rep.
+    board.move_to(Move.from_notation("a1a2"));
+    board.move_to(Move.from_notation("h1h2"));
+    board.move_to(Move.from_notation("a2a1"));
+    try expect(board.hashlist.threefold() == false);
+    board.move_to(Move.from_notation("h2h1"));  // 3nd rep.
+    try expect(board.hashlist.threefold() == true);
 }

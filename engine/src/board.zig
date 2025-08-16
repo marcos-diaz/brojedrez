@@ -7,6 +7,7 @@ const Pos = @import("pos.zig").Pos;
 const Move = @import("pos.zig").Move;
 const MoveList = @import("pos.zig").MoveList;
 const MoveAndScore = @import("pos.zig").MoveAndScore;
+const HashList = @import("hashlist.zig").HashList;
 
 pub const Player = enum {
     PLAYER1,
@@ -187,14 +188,14 @@ pub const Board = struct {
         self: *Board,
     ) void {
         self.load_from_string(
-            "----r---" ++
-            "---K--P-" ++
-            "q------P" ++
-            "P-B--P--" ++
-            "---P--Qp" ++
-            "p-----p-" ++
-            "-Rp--p--" ++
-            "-Q--r-k-"
+            "R--Q-R--" ++
+            "PP---P--" ++
+            "--N----K" ++
+            "--Pb-qP-" ++
+            "------pP" ++
+            "p---p---" ++
+            "-p-b---p" ++
+            "-----rk-"
         );
     }
 
@@ -290,7 +291,10 @@ pub const Board = struct {
             Piece.KING2 => self.p2_kings.add(pos),
             Piece.NONE => {},
         }
-        self.hash ^= tables.piece_hash[@intFromEnum(piece)][pos.index];
+        if (piece != Piece.NONE) {
+            const diff = tables.piece_hash[@intFromEnum(piece)][pos.index];
+            self.hash ^= diff;
+        }
     }
 
     pub fn remove(
@@ -313,7 +317,10 @@ pub const Board = struct {
             Piece.KING2 => self.p2_kings.remove(pos),
             Piece.NONE => {}
         }
-        self.hash ^= tables.piece_hash[@intFromEnum(piece)][pos.index];
+        if (piece != Piece.NONE) {
+            const diff = tables.piece_hash[@intFromEnum(piece)][pos.index];
+            self.hash ^= diff;
+        }
     }
 
     pub fn move_to(
@@ -808,30 +815,22 @@ pub const Board = struct {
             if (piece == Piece.NONE) continue;
             self.hash ^= tables.piece_hash[@intFromEnum(piece)][pos.index];
         }
-    }
-};
-
-const HashList = struct {
-    hashes: [8]u64 = .{0} ** 8,
-    index: u3 = 0,
-    last_was_duplicated: bool = false,
-
-    pub fn put (
-        self: *HashList,
-        hash: u64,
-    ) void {
-        self.last_was_duplicated = self.has(hash);
-        self.hashes[self.index] = hash;
-        self.index +%= 1;
+        self.hashlist.put(self.hash);
     }
 
-    pub fn has (
-        self: *HashList,
-        hash: u64,
-    ) bool {
-        for (0..8) |i| {
-            if (self.hashes[i] == hash) return true;
+    pub fn count_legal_moves(
+        self: *Board,
+        // TODO: Depth parameter.
+    ) u16 {
+        var total: u16 = 0;
+        const legal = self.get_legal_moves();
+        for (0..legal.len) |i| {
+            const move = legal.data[i];
+            var subboard = self.fork_with_move(move);
+            total += subboard.get_legal_moves().len;
         }
-        return false;
+        return total;
     }
 };
+
+
