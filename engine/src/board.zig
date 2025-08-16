@@ -25,7 +25,7 @@ pub const PieceValue = enum(i16) {
     KNIGHT =   350,
     BISHOP =   400,
     ROOK =     600,
-    QUEEN =   1100,
+    QUEEN =   1250,
 };
 
 pub const Board = struct {
@@ -332,9 +332,9 @@ pub const Board = struct {
         // Is hot.
         const captured = opp_mask.has(move.dest);
         if (captured) self.n_pieces -= 1;
-        const pawn_walk = self.n_pieces < 12 and (piece==Piece.PAWN1 or piece==Piece.PAWN2);
-        // const is_king = (piece == Piece.KING1) or (piece == Piece.KING2);
-        const is_hot = captured or pawn_walk or self.is_check_on_opp();
+        const pawn_walk = self.n_pieces <= 12 and (piece==Piece.PAWN1 or piece==Piece.PAWN2);
+        const king_walk = self.n_pieces <= 6 and (piece==Piece.KING1 or piece==Piece.KING2);
+        const is_hot = captured or pawn_walk or king_walk or self.is_check_on_opp();
         if (!is_hot and self.heat > 0) self.heat -= 1;
         if (is_hot and self.heat < 3) self.heat += 1;
         // Castling status.

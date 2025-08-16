@@ -33,7 +33,12 @@ pub fn minmax(
     // var cache = Cache{};
     // cache.reset();
     var path = MoveListShort{};
-    return minmax_node(board, 0, 32000, -32000, stats, &path);
+    // const nmoves = board.count_legal_moves();
+    const npieces = board.n_pieces;
+    var boost: u4 = 0;
+    if (npieces <= 6) boost += 1;
+    if (npieces <= 4) boost += 1;
+    return minmax_node(board, 0, boost, 32000, -32000, stats, &path);
 }
 
 // pub fn minmax_dynamic(
@@ -53,6 +58,7 @@ pub fn minmax(
 pub fn minmax_node(
     board: *Board,
     depth: u4,
+    boost: u4,
     // depth_max: u4,
     best_min: i16,
     best_max: i16,
@@ -76,16 +82,20 @@ pub fn minmax_node(
     //     }
     // }
 
-    var boost: u4 = 0;
-    if (board.n_pieces <= 12) boost += 1;
+    // const is_leaf = (
+    //     (depth == DEPTH[3]+boost) or                        // Max.
+    //     (depth >= DEPTH[2]+boost and board.heat < 3) or     // Not heat 3.
+    //     (depth >= DEPTH[1]+boost and board.heat < 2) or     // Not heat 2.
+    //     (depth >= DEPTH[0]+boost and board.heat < 1)  // Not heat 1.
+    // );
 
-    const is_leaf = (
-        (depth == DEPTH[3]) or                        // Max.
-        (depth >= DEPTH[2] and board.heat < 3) or     // Not heat 3.
-        (depth >= DEPTH[1] and board.heat < 2) or     // Not heat 2.
-        (depth >= DEPTH[0]+boost and board.heat < 1)  // Not heat 1.
+    const extend = (
+        (depth < DEPTH[0]+boost) or
+        (depth < DEPTH[1]+boost and board.heat >= 1) or
+        (depth < DEPTH[2]+boost and board.heat >= 2) or
+        (depth < DEPTH[3]+boost and board.heat >= 3)
     );
-    if (is_leaf) {
+    if (!extend) {
         const score = board.get_score();
         stats.*.total += 1;
         stats.*.evals[depth] += 1;
@@ -118,15 +128,7 @@ pub fn minmax_node(
     // legal.sort_with_priority(path.data[depth]);
     for (0..legal.len) |i| {
         const move = legal.data[i];
-        path.data[depth] = move;
-
-        // if (is_debug_path(depth, path)) {
-        //     terminal.indent(depth);
-        //     print("{s}\n", .{move.notation()});
-        // } else {
-        //     continue;
-        // }
-
+        // path.data[depth] = move;
 
         // Prune.
         if (best_min <= best_max) {
@@ -140,12 +142,19 @@ pub fn minmax_node(
         const candidate = minmax_node(
             &fork,
             depth+1,
+            boost,
             // depth_max,
             new_best_min,
             new_best_max,
             stats,
             path,
         );
+        // Debug path.
+        // if (is_debug_path(depth, path)) {
+        //     terminal.indent(depth+1);
+        //     const c = if (board.turn==Player.PLAYER1) "P1" else "P2";
+        //     print("{s} {s} ({d})\n", .{c, move.notation(), candidate.score});
+        // }
         // Compare scores.
         if (
             (!best.score_defined) or
@@ -177,14 +186,11 @@ fn is_debug_path(
     path: *MoveListShort,
 ) bool {
     var path_debug = MoveListShort{};
-    path_debug.add(Move.from_notation("b1c2"));
-    path_debug.add(Move.from_notation("a6c8"));
-    path_debug.add(Move.from_notation("d7d6"));
-    path_debug.add(Move.from_notation("e8d8"));
-
-    // if (depth > 3) return true;
-
-    for (0..depth+1) |d| {
+    path_debug.add(Move.from_notation("f7f6"));
+    path_debug.add(Move.from_notation("d5e4"));
+    path_debug.add(Move.from_notation("d8d2"));
+    path_debug.add(Move.from_notation("g6h7"));
+    for (0..depth) |d| {
         const move = path_debug.data[d];
         if (!path.*.data[d].eq(&move)) return false;
     }
@@ -192,16 +198,18 @@ fn is_debug_path(
 }
 
 
-    // const DEPTH = .{4, 5, 5, 8};  // 1200+
-    // const DEPTH = .{4, 6, 6, 8};  // 1400+ 1500-
-    // const DEPTH = .{4, 6, 7, 9};  // 1700-P20
-    // const DEPTH = .{5, 6, 7, 9}; // 1500+P11   too slow
-
-    // const DEPTH = .{4, 6, 6, 10};  // 1600+P2  1600-P1  1700-P4
-    // const DEPTH = .{4, 6, 7, 10};
-    // const DEPTH = .{5, 5, 5, 7};  // 1600+P1
-    // const DEPTH = .{5, 5, 5, 9};  // 1700=P2  1700-P4
-    // const DEPTH = .{5, 7, 7, 7};  // 1700-P15
-
+// const DEPTH = .{4, 5, 5, 8};  // 1200+
+// const DEPTH = .{4, 6, 6, 8};  // 1400+ 1500-
+// const DEPTH = .{4, 6, 7, 9};  // 1700-P20
+// const DEPTH = .{5, 6, 7, 9}; // 1500+P11   too slow
+// const DEPTH = .{4, 6, 6, 10};  // 1600+P2  1600-P1  1700-P4
+// const DEPTH = .{4, 6, 7, 10};
+// const DEPTH = .{5, 5, 5, 7};  // 1600+P1
+// const DEPTH = .{5, 5, 5, 9};  // 1700=P2  1700-P4
+// const DEPTH = .{5, 7, 7, 7};  // 1700-P15
 // const DEPTH = .{5, 5, 7, 9};  //1600+P12
-const DEPTH = .{5, 6, 7, 8};
+
+// MID
+const DEPTH = .{4, 6, 6, 10};  // 1500+++ 1600+=++  1700---  P2 P8
+
+// const DEPTH = .{4, 7, 7, 10};
