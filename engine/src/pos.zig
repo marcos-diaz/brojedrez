@@ -93,72 +93,65 @@ pub const Move = struct {
     }
 };
 
-pub const MoveList = struct {
-    len: u8 = 0,
-    data: [128]Move = undefined,
+pub fn MoveListType(comptime size: usize) type {
+    return struct {
+        const Self = @This();
+        len: u8 = 0,
+        data: [size]Move = undefined,
 
-    pub fn add(
-        self: *MoveList,
-        move: Move,
-    ) void {
-        self.data[self.len] = move;
-        self.len += 1;
-    }
-
-    pub fn sort(
-        self: *MoveList,
-    ) void {
-        const slice = self.data[0..self.len];
-        const compare = struct {
-            fn compare(_: void, a: Move, b: Move) bool {
-                return a.capture_score > b.capture_score;
-            }
-        }.compare;
-        std.mem.sort(Move, slice, {}, compare);
-    }
-
-    pub fn sort_with_priority(
-        self: *MoveList,
-        priority: Move,
-    ) void {
-        const slice = self.data[0..self.len];
-        const compare = struct {
-            fn compare(priority_move: *const Move, a: Move, b: Move) bool {
-                if (a.eq(priority_move)) return true;
-                if (b.eq(priority_move)) return false;
-                return a.capture_score > b.capture_score;
-            }
-        }.compare;
-        std.mem.sort(Move, slice, &priority, compare);
-    }
-};
-
-pub const MoveListShort = struct {
-    len: u8 = 0,
-    data: [10]Move = undefined,
-
-    pub fn add(
-        self: *MoveListShort,
-        move: Move,
-    ) void {
-        self.data[self.len] = move;
-        self.len += 1;
-    }
-
-    pub fn reverse(
-        self: *MoveListShort)
-    void {
-        var i: usize = 0;
-        var j: usize = self.len - 1;
-        while (i < j) {
-            const temp = self.data[i];
-            self.data[i] = self.data[j];
-            self.data[j] = temp;
-            i += 1;
-            j -= 1;
+        pub fn add(
+            self: *Self,
+            move: Move,
+        ) void {
+            self.data[self.len] = move;
+            self.len += 1;
         }
-    }
-};
+
+        pub fn reverse(
+            self: *Self)
+        void {
+            var i: usize = 0;
+            var j: usize = self.len - 1;
+            while (i < j) {
+                const temp = self.data[i];
+                self.data[i] = self.data[j];
+                self.data[j] = temp;
+                i += 1;
+                j -= 1;
+            }
+        }
+
+        pub fn sort(
+            self: *Self,
+        ) void {
+            const slice = self.data[0..self.len];
+            const compare = struct {
+                fn compare(_: void, a: Move, b: Move) bool {
+                    return a.capture_score > b.capture_score;
+                }
+            }.compare;
+            std.mem.sort(Move, slice, {}, compare);
+        }
+
+        pub fn sort_with_priority(
+            self: *Self,
+            priority: Move,
+        ) void {
+            const slice = self.data[0..self.len];
+            const compare = struct {
+                fn compare(priority_move: *const Move, a: Move, b: Move) bool {
+                    if (a.eq(priority_move)) return true;
+                    if (b.eq(priority_move)) return false;
+                    return a.capture_score > b.capture_score;
+                }
+            }.compare;
+            std.mem.sort(Move, slice, &priority, compare);
+        }
+    };
+}
+
+pub const MoveListLong = MoveListType(256);
+pub const MoveListShort = MoveListType(10);
 
 pub const MoveAndScore = struct {
     move: ?Move,

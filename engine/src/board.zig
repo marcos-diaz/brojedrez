@@ -5,9 +5,10 @@ const tables = @import("tables.zig");
 const terminal = @import("terminal.zig");
 const Pos = @import("pos.zig").Pos;
 const Move = @import("pos.zig").Move;
-const MoveList = @import("pos.zig").MoveList;
 const MoveAndScore = @import("pos.zig").MoveAndScore;
 const HashList = @import("hashlist.zig").HashList;
+const MoveListType = @import("pos.zig").MoveListType;
+const MoveList = MoveListType(128);
 
 pub const Player = enum {
     PLAYER1,

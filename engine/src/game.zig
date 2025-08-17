@@ -5,10 +5,11 @@ const minmax = @import("minmax.zig");
 const _pos = @import("pos.zig");
 const Pos = _pos.Pos;
 const Move = _pos.Move;
-const MoveList = _pos.MoveList;
+const MoveListLong = _pos.MoveListLong;
 
 pub const Game = struct {
     boards: [256]Board = undefined,
+    moves: MoveListLong = MoveListLong{},
     index: u8 = 0,
     len: u8 = 0,
     highlight_orig: i32 = -1,
@@ -20,12 +21,6 @@ pub const Game = struct {
     ) void {
         self.index = 0;
         self.len = 0;
-        self.clear();
-    }
-
-    pub fn clear(
-        self: *Game,
-    ) void {
         self.highlight_orig = -1;
         self.highlight_dest = -1;
     }
@@ -47,6 +42,20 @@ pub const Game = struct {
         self: *Game,
     ) *Board {
         return &self.boards[self.index];
+    }
+
+    pub fn update_highlights(
+        self: *Game,
+        offset: i32,
+    ) void {
+        if (self.index > 0) {
+            const index = self.index - 1 + @as(usize, @intCast(offset));
+            self.highlight_orig = self.moves.data[index].orig.index;
+            self.highlight_dest = self.moves.data[index].dest.index;
+        } else {
+            self.highlight_orig = -1;
+            self.highlight_dest = -1;
+        }
     }
 
     pub fn get(
@@ -91,8 +100,6 @@ pub const Game = struct {
         // const score = minmax.score;
         // prev_board = board;
         self.move_game(move);
-        self.highlight_orig = move.orig.index;
-        self.highlight_dest = move.dest.index;
     }
 
     pub fn move_game(
@@ -103,6 +110,9 @@ pub const Game = struct {
         self.boards[self.index+1] = board.*.fork_with_move(move);
         self.index += 1;
         self.len = self.index;
+        self.highlight_orig = move.orig.index;
+        self.highlight_dest = move.dest.index;
+        self.moves.add(move);
     }
 
     pub fn undo(
@@ -110,7 +120,7 @@ pub const Game = struct {
     ) void {
         if (self.index == 0) return;
         self.index -= 1;
-        self.clear();
+        self.update_highlights(1);
     }
 
     pub fn redo(
@@ -118,6 +128,6 @@ pub const Game = struct {
     ) void {
         if (self.index == self.len) return;
         self.index += 1;
-        self.clear();
+        self.update_highlights(0);
     }
 };
