@@ -11,6 +11,7 @@ const MoveAndScore = _pos.MoveAndScore;
 const Cache = @import("cache.zig").Cache;
 const CacheEntry = @import("cache.zig").CacheEntry;
 const terminal = @import("terminal.zig");
+const random = @import("random.zig");
 
 pub const Stats = struct {
     total: u32 = 0,
@@ -66,7 +67,6 @@ pub fn minmax_node(
     path: *MoveListShort,
     // cache: *Cache,
 ) MoveAndScore {
-
     // const cache_entry_ = cache.*.get(board.hash, board.turn==Player.PLAYER2);
     // if (cache_entry_) |cache_entry| {
     //     if (cache_entry.best.depth >= depth) {
@@ -81,14 +81,6 @@ pub fn minmax_node(
     //         return cache_entry.best;
     //     }
     // }
-
-    // const is_leaf = (
-    //     (depth == DEPTH[3]+boost) or                        // Max.
-    //     (depth >= DEPTH[2]+boost and board.heat < 3) or     // Not heat 3.
-    //     (depth >= DEPTH[1]+boost and board.heat < 2) or     // Not heat 2.
-    //     (depth >= DEPTH[0]+boost and board.heat < 1)  // Not heat 1.
-    // );
-
     const extend = (
         (depth < DEPTH[0]+boost) or
         (depth < DEPTH[1]+boost and board.heat >= 1) or
@@ -110,6 +102,7 @@ pub fn minmax_node(
     var init_score: i16 = @as(i16, -32000) + depth;
     if (board.turn==Player.PLAYER2) init_score = -init_score;
     var best: MoveAndScore = MoveAndScore{.move=null, .score=init_score};
+    var best2: MoveAndScore = MoveAndScore{.move=null, .score=init_score};
     var new_best_min = best_min;
     var new_best_max = best_max;
     var legal = board.get_legal_moves();
@@ -161,6 +154,7 @@ pub fn minmax_node(
             (board.turn == Player.PLAYER1 and candidate.score > best.score) or
             (board.turn == Player.PLAYER2 and candidate.score < best.score)
         ) {
+            best2 = best;
             best.move = move;
             best.score = candidate.score;
             best.score_defined = true;
@@ -171,6 +165,14 @@ pub fn minmax_node(
             } else {
                 new_best_min = candidate.score;
             }
+        }
+    }
+    // Randomization.
+    if (depth == 0 and board.n_pieces >= 30 and best2.score_defined) {
+        const diff = @abs(best2.score - best.score);
+        const rng = random.random() % 3 == 0;
+        if (rng and diff < 100) {
+            best = best2;
         }
     }
     // cache.*.set(

@@ -34,7 +34,12 @@ export class App {
   async loadWasm() {
     const response = await fetch('brojedrez.wasm')
     const bytes = await response.arrayBuffer()
-    const {instance} = await WebAssembly.instantiate(bytes)
+    const wasmImports = {
+      env: {
+        js_random: () => Math.floor(Math.random() * 0xFFFFFFFF),
+      }
+    };
+    const {instance} = await WebAssembly.instantiate(bytes, wasmImports)
     this.wasm = instance.exports
     console.log('WASM loaded')
     console.log(this.wasm)
