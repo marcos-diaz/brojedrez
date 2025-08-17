@@ -6,22 +6,22 @@ const Player = @import("board.zig").Player;
 const Pos = @import("pos.zig").Pos;
 const Move = @import("pos.zig").Move;
 const minmax = @import("minmax.zig");
-
 const tables = @import("tables.zig");
+const Game = @import("game.zig").Game;
 
+// Text buffers.
 const print = std.debug.print;
 const stdout = std.io.getStdOut().writer();
 const stdin = std.io.getStdIn().reader();
 
+// Colors.
 pub const blue =  "\x1b[94m";
 pub const red =   "\x1b[31m";
 pub const green = "\x1b[32m";
 pub const grey =  "\x1b[90m";
 pub const grey2 = "\x1b[38;5;236m";
-
 pub const red2 =  "\x1b[38;5;215m";
 pub const blue2 = "\x1b[38;5;117m";
-
 pub const reset = "\x1b[0m";
 pub const force_clear = "\x1b[3J\x1b[2J\x1b[H";
 
@@ -96,13 +96,12 @@ pub fn indent(
 }
 
 pub fn loop() !void {
-    var board = Board.init();
-    var prev_board = Board.init();
+    var game = Game{};
+    game.start();
     try clear();
-    // var selected: Pos = undefined;
     var has_selected = false;
     var highlight = BoardMask{.mask=0};
-    print_board(&board, &highlight);
+    print_board(game.current(), &highlight);
     var buffer: [128]u8 = undefined;
 
     while(true) {
@@ -110,23 +109,25 @@ pub fn loop() !void {
         @memset(&buffer, 0);
         const input_len = try stdin.read(&buffer);
 
-        if (std.mem.eql(u8, buffer[0..5], "reset")) {
-            board.reset();
+        if (std.mem.eql(u8, buffer[0..5], "start")) {
+            game.start();
             has_selected = false;
             highlight = BoardMask{.mask=0};
             try clear();
-            print_board(&board, &highlight);
+            print_board(game.current(), &highlight);
             continue;
         }
 
-        if (std.mem.eql(u8, buffer[0..5], "setup")) {
-            board = Board{};
-            board.setup();
-            board.switch_turn();
+        if (
+            std.mem.eql(u8, buffer[0..5], "setup") or
+            std.mem.eql(u8, buffer[0..1], "s")
+        ) {
+            game.setup();
+            game.current().switch_turn();
             has_selected = false;
             highlight = BoardMask{.mask=0};
             try clear();
-            print_board(&board, &highlight);
+            print_board(game.current(), &highlight);
             continue;
         }
 
@@ -134,14 +135,14 @@ pub fn loop() !void {
             std.mem.eql(u8, buffer[0..4], "undo") or
             std.mem.eql(u8, buffer[0..1], "u")
         ) {
-            board = prev_board;
+            game.undo();
             try clear();
-            print_board(&board, &highlight);
+            print_board(game.current(), &highlight);
             continue;
         }
 
         if (std.mem.eql(u8, buffer[0..5], "legal")) {
-            const legal = board.get_legal_moves();
+            const legal = game.current().get_legal_moves();
             for (0..legal.len) |i| {
                 const move = legal.data[i];
                 print("{s}, ", .{ move.notation() });
@@ -150,35 +151,25 @@ pub fn loop() !void {
             continue;
         }
 
-        // if (std.mem.eql(u8, buffer[0..5], "capture")) {
-        //     const legal = board.get_legal_moves();
-        //     for (0..legal.len) |i| {
-        //         const move = legal.data[i];
-        //         print("{s}, ", .{ move.notation() });
-        //     }
-        //     print("\n", .{});
-        //     continue;
-        // }
-
         if (std.mem.eql(u8, buffer[0..4], "eval")) {
-            const score = board.get_score();
+            const score = game.current().get_score();
             print("score={d}\n", .{score});
             continue;
         }
 
         if (std.mem.eql(u8, buffer[0..4], "hash")) {
-            print("hash={x}\n", .{board.hash});
+            print("hash={x}\n", .{game.current().hash});
             continue;
         }
 
         if (std.mem.eql(u8, buffer[0..4], "king")) {
-            const can_capture_king = board.is_check_on_opp();
+            const can_capture_king = game.current().is_check_on_opp();
             print("can_capture_king={}\n", .{can_capture_king});
             continue;
         }
 
         if (std.mem.eql(u8, buffer[0..8], "dumpcode")) {
-            const str = board.save_to_string();
+            const str = game.current().save_to_string();
             print("\"{s}\" ++\n", .{str[8*0..1*8]});
             print("\"{s}\" ++\n", .{str[8*1..2*8]});
             print("\"{s}\" ++\n", .{str[8*2..3*8]});
@@ -191,17 +182,17 @@ pub fn loop() !void {
         }
 
         if (std.mem.eql(u8, buffer[0..4], "dump")) {
-            const str = board.save_to_string();
+            const str = game.current().save_to_string();
             print("{s}\n", .{str});
             continue;
         }
 
         if (std.mem.eql(u8, buffer[0..4], "load")) {
             const str = buffer[5..69];
-            board.load_from_string(str);
-            board.switch_turn();
+            game.current().load_from_string(str);
+            game.current().switch_turn();
             try clear();
-            print_board(&board, &highlight);
+            print_board(game.current(), &highlight);
             continue;
         }
 
@@ -212,20 +203,19 @@ pub fn loop() !void {
         ) {
             var stats = minmax.Stats{};
             const start = std.time.nanoTimestamp();
-            const mm = minmax.minmax(&board, &stats);
+            const mm = minmax.minmax(game.current(), &stats);
             const end = std.time.nanoTimestamp();
             const elapsed = @divFloor(end-start, 1_000_000_000);
             const total_evals: i64 = @intCast(stats.total);
             const per_eval = @divFloor(end-start, total_evals);
             const move = mm.move orelse unreachable;
             const score = mm.score;
-            prev_board = board;
-            board = board.fork_with_move(move);
+            game.move_game(move);
             highlight.reset();
             highlight.add(move.orig);
             highlight.add(move.dest);
             try clear();
-            print_board(&board, &highlight);
+            print_board(game.current(), &highlight);
             print("{s}>{s} play\n", .{green, reset});
             print("evaluated\n", .{});
             print("  d=3   {d:>9} {d:>9}\n", .{stats.evals[ 3], stats.prune[ 3]});
@@ -249,45 +239,6 @@ pub fn loop() !void {
             continue;
         }
 
-        // // Autoplay loop.
-        // if (std.mem.eql(u8, buffer[0..8], "autoplay")) {
-        //     for (0..100) |_| {
-        //         var stats: Stats = .{0} ** 16;
-        //         const minmax = board.minmax(0, 4, 7, 32000, -32000, &stats);
-        //         const move = minmax.move orelse break;
-        //         prev_board = board;
-        //         board = board.fork_with_move(move);
-        //         highlight.reset();
-        //         highlight.add(move.orig);
-        //         highlight.add(move.dest);
-        //         try clear();
-        //         print_board(&board, &highlight);
-        //         std.time.sleep(500_000_000);
-        //     }
-        //     continue;
-        // }
-
-        // // Select.
-        // if (input_len == 3) {
-        //     const pos = Pos.from_notation(buffer[0], buffer[1]);
-        //     selected = pos;
-        //     has_selected = true;
-        //     highlight = board.get_moves_for_pos(pos);
-        //     try clear();
-        //     print_board(&board, &highlight);
-        //     print("{s}>{s} {s}\n", .{green, reset, selected.notation()});
-        //     print("Selected: {s}\n", .{selected.notation()});
-        //     print("Available moves: ", .{});
-        //     for(0..64) |_pos| {
-        //         const hpos = Pos.from_int(@intCast(63 - _pos));
-        //         if (highlight.has(hpos)) {
-        //             print("{s}, ", .{hpos.notation()});
-        //         }
-        //     }
-        //     print("\n", .{});
-        //     continue;
-        // }
-
         // Move.
         if(
             (input_len == 5) or
@@ -303,14 +254,14 @@ pub fn loop() !void {
                 // orig = selected;
                 dest = Pos.from_notation(buffer[1], buffer[2]);
             }
-            prev_board = board;
-            board = board.fork_with_move(Move{.orig=orig, .dest=dest});
+            const move = Move{.orig=orig, .dest=dest};
+            game.move_game(move);
             highlight.reset();
             highlight.add(orig);
             highlight.add(dest);
             has_selected = false;
             try clear();
-            print_board(&board, &highlight);
+            print_board(game.current(), &highlight);
             print("{s}>{s} {s}{s}\n", .{green, reset, orig.notation(), dest.notation()});
             continue;
         }
@@ -319,11 +270,11 @@ pub fn loop() !void {
         if(input_len == 4) {
             var orig_: ?Pos = null;
             const dest = Pos.from_notation(buffer[1], buffer[2]);
-            const legal = board.get_legal_moves();
+            const legal = game.current().get_legal_moves();
             for(0..legal.len) |i| {
                 const move = legal.data[i];
                 if (move.dest.index != dest.index) continue;
-                const piece = board.get(move.orig);
+                const piece = game.current().get(move.orig);
                 switch (buffer[0]) {
                     'p' => {if (piece==Piece.PAWN1 or piece==Piece.PAWN2) orig_ = move.orig;},
                     'r' => {if (piece==Piece.ROOK1 or piece==Piece.ROOK2) orig_ = move.orig;},
@@ -335,14 +286,14 @@ pub fn loop() !void {
                 }
             }
             if (orig_) |orig| {
-                prev_board = board;
-                board = board.fork_with_move(Move{.orig=orig, .dest=dest});
+                const move = Move{.orig=orig, .dest=dest};
+                game.move_game(move);
                 highlight.reset();
                 highlight.add(orig);
                 highlight.add(dest);
                 has_selected = false;
                 try clear();
-                print_board(&board, &highlight);
+                print_board(game.current(), &highlight);
                 print("{s}>{s} {s}{s}\n", .{green, reset, orig.notation(), dest.notation()});
             } else {
                 print("notation error\n", .{});
@@ -354,7 +305,7 @@ pub fn loop() !void {
         if(input_len == 3) {
             var orig_: ?Pos = null;
             const dest = Pos.from_notation(buffer[0], buffer[1]);
-            const legal = board.get_legal_moves();
+            const legal = game.current().get_legal_moves();
             for(0..legal.len) |i| {
                 const move = legal.data[i];
                 // print("{s}\n", .{move.notation()});
@@ -363,14 +314,14 @@ pub fn loop() !void {
                 break;
             }
             if (orig_) |orig| {
-                prev_board = board;
-                board = board.fork_with_move(Move{.orig=orig, .dest=dest});
+                const move = Move{.orig=orig, .dest=dest};
+                game.move_game(move);
                 highlight.reset();
                 highlight.add(orig);
                 highlight.add(dest);
                 has_selected = false;
                 try clear();
-                print_board(&board, &highlight);
+                print_board(game.current(), &highlight);
                 print("{s}>{s} {s}{s}\n", .{green, reset, orig.notation(), dest.notation()});
             } else {
                 print("notation error\n", .{});

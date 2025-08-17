@@ -52,16 +52,23 @@ export class App {
       board[index] = piece
     }
     this.board.set(board)
+    this.highlight_orig = this.wasm.get_highlight_orig()
+    this.highlight_dest = this.wasm.get_highlight_dest()
   }
 
   init() {
     this.wasm.init()
-    this.wasm.setup()
+    this.wasm.start()
     this.refreshBoard()
   }
 
   undo() {
     this.wasm.undo()
+    this.refreshBoard()
+  }
+
+  redo() {
+    this.wasm.redo()
     this.refreshBoard()
   }
 
@@ -127,12 +134,10 @@ export class App {
         await delay(100)
         console.log('PROCESSING')
         const start = Date.now();
-        this.wasm.autoplay()
+        this.wasm.move_bot()
         const elapsed = (Date.now() - start) / 1000
         this.times.push(elapsed)
         console.log('DONE', elapsed, this.timeAvg(), this.timeP25worst())
-        this.highlight_orig = this.wasm.get_highlight_orig()
-        this.highlight_dest = this.wasm.get_highlight_dest()
         this.refreshBoard()
         this.turn = true
         this.selected = undefined;
