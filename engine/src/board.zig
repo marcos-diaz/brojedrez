@@ -188,15 +188,21 @@ pub const Board = struct {
         self: *Board,
     ) void {
         self.load_from_string(
-            "R--Q-R--" ++
-            "PP---P--" ++
-            "--N----K" ++
-            "--Pb-qP-" ++
-            "------pP" ++
-            "p---p---" ++
-            "-p-b---p" ++
-            "-----rk-"
+            "--------" ++
+            "--------" ++
+            "--------" ++
+            "-----K--" ++
+            "--k-----" ++
+            "--------" ++
+            "--------" ++
+            "-------R"
         );
+        self.p1_king_moved = true;
+        self.p2_king_moved = true;
+        self.p1_rook_short_moved = true;
+        self.p1_rook_long_moved = true;
+        self.p2_rook_short_moved = true;
+        self.p2_rook_long_moved = true;
     }
 
     // pub fn setup(
@@ -333,8 +339,8 @@ pub const Board = struct {
         const captured = opp_mask.has(move.dest);
         if (captured) self.n_pieces -= 1;
         const pawn_walk = self.n_pieces <= 12 and (piece==Piece.PAWN1 or piece==Piece.PAWN2);
-        const king_walk = self.n_pieces <= 6 and (piece==Piece.KING1 or piece==Piece.KING2);
-        const is_hot = captured or pawn_walk or king_walk or self.is_check_on_opp();
+        // const king_walk = self.n_pieces <= 6 and (piece==Piece.KING1 or piece==Piece.KING2);
+        const is_hot = captured or pawn_walk or self.is_check_on_opp();
         if (!is_hot and self.heat > 0) self.heat -= 1;
         if (is_hot and self.heat < 3) self.heat += 1;
         // Castling status.
@@ -774,13 +780,21 @@ pub const Board = struct {
                 Piece.BISH1 => score += @intFromEnum(PieceValue.BISHOP) + tables.piece_score[pos.reverse().index],
                 Piece.ROOK1 => score += @intFromEnum(PieceValue.ROOK)   + tables.piece_score[pos.reverse().index],
                 Piece.QUEN1 => score += @intFromEnum(PieceValue.QUEEN)  + tables.piece_score[pos.reverse().index],
-                Piece.KING1 => {},
                 Piece.PAWN2 => score -= @intFromEnum(PieceValue.PAWN)   + tables.pawn_score[pos.index],
                 Piece.KNIG2 => score -= @intFromEnum(PieceValue.KNIGHT) + tables.piece_score[pos.index],
                 Piece.BISH2 => score -= @intFromEnum(PieceValue.BISHOP) + tables.piece_score[pos.index],
                 Piece.ROOK2 => score -= @intFromEnum(PieceValue.ROOK)   + tables.piece_score[pos.index],
                 Piece.QUEN2 => score -= @intFromEnum(PieceValue.QUEEN)  + tables.piece_score[pos.index],
-                Piece.KING2 => {},
+                // Piece.KING1 => {},
+                // Piece.KING2 => {},
+                Piece.KING1 => {
+                    if (self.n_pieces > 8) score += tables.king_score_early[pos.index]
+                    else score += tables.king_score_late[pos.index];
+                },
+                Piece.KING2 => {
+                    if (self.n_pieces > 8) score -= tables.king_score_early[pos.reverse().index]
+                    else score -= tables.king_score_late[pos.reverse().index];
+                },
             }
         }
         // Pawn defense.
@@ -794,7 +808,7 @@ pub const Board = struct {
             const pawn_back = tables.pawn_defense[pawn_pos.reverse().index];
             score -= 25 * @popCount(self.p2_pawns.mask & pawn_back);
         }
-        // Castling potential,
+        // Castling potential.
         if (!self.p1_king_moved and !self.p1_rook_short_moved) score += 50;
         if (!self.p1_king_moved and !self.p1_rook_long_moved) score += 50;
         if (!self.p2_king_moved and !self.p2_rook_short_moved) score -= 50;
