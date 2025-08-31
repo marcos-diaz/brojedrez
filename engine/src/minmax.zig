@@ -91,8 +91,10 @@ pub fn minmax_node(
         const score = board.get_score();
         stats.*.total += 1;
         stats.*.evals[depth] += 1;
-        // terminal.indent(depth);
-        // print("{d} ({d})\n", .{score, depth});
+        // if (is_debug_path(depth, path)) {
+        //     terminal.indent(depth);
+        //     print("[{d}]\n", .{score});
+        // }
         const best = MoveAndScore{.move=null, .score=score};
         // cache.*.set(CacheEntry{.hash=board.hash, .best=best}, board.turn==Player.PLAYER2);
         return best;
@@ -143,8 +145,8 @@ pub fn minmax_node(
             path,
         );
         // Debug path.
-        // if (is_debug_path(depth, path)) {
-        //     terminal.indent(depth+1);
+        // if (is_debug_path(depth+1, path)) {
+        //     terminal.indent(depth);
         //     const c = if (board.turn==Player.PLAYER1) "P1" else "P2";
         //     print("{s} {s} ({d})\n", .{c, move.notation(), candidate.score});
         // }
@@ -188,10 +190,12 @@ fn is_debug_path(
     path: *MoveListShort,
 ) bool {
     var path_debug = MoveListShort{};
-    path_debug.add(Move.from_notation("f7f6"));
-    path_debug.add(Move.from_notation("d5e4"));
-    path_debug.add(Move.from_notation("d8d2"));
-    path_debug.add(Move.from_notation("g6h7"));
+    path_debug.add(Move.from_notation("e6e5"));
+    path_debug.add(Move.from_notation("b1d1"));
+    path_debug.add(Move.from_notation("e8d7"));
+    path_debug.add(Move.from_notation("d3d7"));
+    path_debug.add(Move.from_notation("e5e4"));
+    path_debug.add(Move.from_notation("d7d8"));
     for (0..depth) |d| {
         const move = path_debug.data[d];
         if (!path.*.data[d].eq(&move)) return false;
@@ -210,8 +214,16 @@ fn is_debug_path(
 // const DEPTH = .{5, 5, 5, 9};  // 1700=P2  1700-P4
 // const DEPTH = .{5, 7, 7, 7};  // 1700-P15
 // const DEPTH = .{5, 5, 7, 9};  //1600+P12
+// const DEPTH = .{1, 1, 1, 1};
+
+// EASY
+// const DEPTH = .{4, 5, 6, 7};
+// const DEPTH = .{4, 5, 6, 9};  // m1+ c2+      P3 P1
 
 // MID
-const DEPTH = .{4, 6, 6, 10};  // 1500+++ 1600+=++  1700---  P2 P8
+const DEPTH = .{4, 6, 6, 10};  // c5+++ c6+=++ c7--- m9++==-  P2 P8
+// const DEPTH = .{4, 5, 7, 9};
 
-// const DEPTH = .{4, 7, 7, 10};
+
+// HARD
+// const DEPTH = .{5, 6, 7, 10};
