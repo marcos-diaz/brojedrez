@@ -1,4 +1,4 @@
-name: Build with Zig
+name: Deploy
 
 on:
   workflow_dispatch:
@@ -12,7 +12,7 @@ jobs:
       uses: actions/checkout@v4
 
     - name: install zig
-      uses: https://codeberg.org/mlugg/setup-zig@v2
+      uses: mlugg/setup-zig@v1
       with:
         version: 0.14.0
 
