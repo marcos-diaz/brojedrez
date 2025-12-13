@@ -34,7 +34,7 @@ jobs:
     - name: build gui
       run: |
         cd gui
-        ng build
+        npx ng build
 
     - name: setup pages
       uses: actions/configure-pages@v4
