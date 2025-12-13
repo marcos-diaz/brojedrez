@@ -20,3 +20,28 @@ jobs:
       run: |
         cd engine
         zig build --release=fast
+
+    - name: install node
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'npm'
+
+    - name: install gui dependencies
+      run: npm ci
+
+    - name: build gui
+      run: ng build
+
+    - name: setup pages
+      uses: actions/configure-pages@v4
+
+    - name: upload static
+      uses: actions/upload-pages-artifact@v3
+      with:
+        path: './dist/chess/browser'
+
+    - name: deploy pages
+      id: deployment
+      uses: actions/deploy-pages@v4
+      if: github.ref == 'refs/heads/main' && github.event_name == 'push'
