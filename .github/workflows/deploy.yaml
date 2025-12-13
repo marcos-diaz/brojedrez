@@ -42,7 +42,7 @@ jobs:
     - name: upload static
       uses: actions/upload-pages-artifact@v3
       with:
-        path: './dist/chess/browser'
+        path: './gui/dist/chess/browser'
 
     - name: deploy pages
       id: deployment
