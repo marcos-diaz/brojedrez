@@ -27,10 +27,14 @@ jobs:
         node-version: '20'
 
     - name: install gui dependencies
-      run: npm ci
+      run: |
+        cd gui
+        npm ci
 
     - name: build gui
-      run: ng build
+      run: |
+        cd gui
+        ng build
 
     - name: setup pages
       uses: actions/configure-pages@v4
