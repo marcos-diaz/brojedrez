@@ -39,7 +39,7 @@ jobs:
     - name: build gui
       run: |
         cd gui
-        npx ng build
+        npx ng build --base-href=/brojedrez/
 
     - name: setup pages
       uses: actions/configure-pages@v4
