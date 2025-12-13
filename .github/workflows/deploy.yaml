@@ -47,4 +47,3 @@ jobs:
     - name: deploy pages
       id: deployment
       uses: actions/deploy-pages@v4
-      if: github.ref == 'refs/heads/main' && github.event_name == 'push'
