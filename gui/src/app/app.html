@@ -1,10 +1,12 @@
 <main class='phone'>
   <div class='ui'>
+
     <div class='top'>
       Black: Brojedrez engine <br/>
       White:
     </div>
-    <div class='board'>
+
+    <div class='board' *ngIf='modeBoard=="board"'>
       <div
         class='cell'
         *ngFor='let i of indexes'
@@ -13,6 +15,35 @@
         >
       </div>
     </div>
+
+    <div class='newgame' *ngIf='modeBoard=="newgame"'>
+      <div class='title'>
+        <div>New Game</div>
+        <div (click)='modeBoard="board"'>X</div>
+      </div>
+      <div class='option' (click)='init()'>
+        <div class='face'><img src='./faces/face1.png'/></div>
+        <div class='info'>
+          <div class='name'>MarcosBot</div>
+          <div class='desc'>I was made to play at the same level than my creator, which is not much</div>
+        </div>
+      </div>
+      <div class='option' (click)='init()'>
+        <div class='face'><img src='./faces/face2.png'/></div>
+        <div class='info'>
+          <div class='name'>MarcosBot+</div>
+          <div class='desc'>My chess knowledge is bad, but I have millennia of human time to calculate my next move</div>
+        </div>
+      </div>
+      <div class='option'>
+        <div class='face'><img src='./faces/face3.png'/></div>
+        <div class='info'>
+          <div class='name'>MarcosBot++<span>Not ready yet</span></div>
+          <div class='desc'>Having transcended my bot nature, I can see the math pillars of the universe. And you come to me to play games?</div>
+        </div>
+      </div>
+    </div>
+
     <div class='bottom'>
       <!-- <div class='mode'>
         <div class='grid'>
@@ -28,7 +59,7 @@
           <img src='./icons/menu.svg'/>
           <div class='text'>Settings</div>
         </div>
-        <div (click)='init()'>
+        <div (click)='modeBoard="newgame"'>
           <img src='./icons/add.svg'/>
           <div class='text'>New game</div>
         </div>

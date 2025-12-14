@@ -34,6 +34,51 @@
     grid-template-columns: repeat(8, 1fr)
     grid-template-rows:    repeat(8, 1fr)
 
+.newgame
+    background-color: black
+    aspect-ratio: 1/1
+    display: flex
+    flex-direction: column
+    gap: 5%
+    padding: 5%
+
+    .title
+        display: flex
+        font-size: 4svh
+        color: white
+        div:first-child
+            flex-grow: 1
+        div:last-child
+            color: hsl(0deg, 0%, 30%)
+
+    .option
+        flex-grow: 1
+        aspect-ratio: 4/1
+        display: flex
+        background-color: hsl(0deg, 0%, 10%)
+        .face
+            height: 100%
+            aspect-ratio: 1/1
+            img
+                image-rendering: pixelated;
+                height: 80%
+                padding: 10%
+        .info
+            flex-grow: 1
+            color: white
+            padding: 4% 2%
+            .name
+                font-size: 3svh
+                span
+                    font-size: 1.8svh
+                    color: brown
+                    margin-left: 2vh
+            .desc
+                margin-top: 2%
+                font-size: 1.8svh
+                color: hsl(0deg, 0%, 70%)
+
+
 .cell
     background-repeat: no-repeat
     background-size: contain

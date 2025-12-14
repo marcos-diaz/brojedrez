@@ -18,6 +18,7 @@ export class App {
   highlight_dest?: number = undefined
   turn = true
   mode = 'play'
+  modeBoard = 'board'
   times: number[] = []
 
   constructor() {
@@ -57,6 +58,7 @@ export class App {
   }
 
   init() {
+    this.modeBoard = 'board'
     this.wasm.init()
     this.wasm.start()
     this.refreshBoard()
