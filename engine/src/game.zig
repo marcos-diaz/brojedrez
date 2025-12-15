@@ -8,6 +8,7 @@ const Move = _pos.Move;
 const MoveListLong = _pos.MoveListLong;
 
 pub const Game = struct {
+    bot_id: i32 = 0,
     boards: [256]Board = undefined,
     moves: MoveListLong = MoveListLong{},
     index: u8 = 0,
@@ -18,7 +19,9 @@ pub const Game = struct {
 
     pub fn init(
         self: *Game,
+        bot_id: i32,
     ) void {
+        self.bot_id = bot_id;
         self.index = 0;
         self.len = 0;
         self.highlight_orig = -1;
@@ -28,7 +31,7 @@ pub const Game = struct {
     pub fn start(
         self: *Game,
     ) void {
-        self.init();
+        self.init(self.bot_id);
         self.current().*.start();
     }
 
@@ -91,7 +94,7 @@ pub const Game = struct {
     ) void {
         // const start = std.time.nanoTimestamp();
         var stats = minmax.Stats{};
-        const mm = minmax.minmax(self.current(), &stats);
+        const mm = minmax.minmax(self.current(), &stats, self.bot_id);
         // const end = std.time.nanoTimestamp();
         // const elapsed = @divFloor(end-start, 1_000_000_000);
         // const total_evals: i64 = @intCast(stats.evals[ 0]);

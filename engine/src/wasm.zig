@@ -6,8 +6,8 @@ const Move = _pos.Move;
 
 var game = Game{};
 
-pub export fn init() void {
-    game.init();
+pub export fn init(bot_id: i32) void {
+    game.init(bot_id);
 }
 
 pub export fn start() void {

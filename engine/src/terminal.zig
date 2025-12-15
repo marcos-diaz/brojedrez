@@ -203,7 +203,7 @@ pub fn loop() !void {
         ) {
             var stats = minmax.Stats{};
             const start = std.time.nanoTimestamp();
-            const mm = minmax.minmax(game.current(), &stats);
+            const mm = minmax.minmax(game.current(), &stats, game.bot_id);
             const end = std.time.nanoTimestamp();
             const elapsed = @divFloor(end-start, 1_000_000_000);
             const total_evals: i64 = @intCast(stats.total);

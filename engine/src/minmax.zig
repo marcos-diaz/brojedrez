@@ -13,6 +13,8 @@ const CacheEntry = @import("cache.zig").CacheEntry;
 const terminal = @import("terminal.zig");
 const random = @import("random.zig");
 
+var BOT = .{0, 0, 0, 0};
+
 pub const Stats = struct {
     total: u32 = 0,
     evals: [16]u32 = .{0} ** 16,
@@ -30,7 +32,13 @@ pub const Stats = struct {
 pub fn minmax(
     board: *Board,
     stats: *Stats,
+    bot_id: i32,
 ) MoveAndScore {
+    BOT = switch(bot_id) {
+        1 => BOT_EASY,
+        2 => BOT_MID,
+        else => BOT_EASY,
+    };
     // var cache = Cache{};
     // cache.reset();
     var path = MoveListShort{};
@@ -82,10 +90,10 @@ pub fn minmax_node(
     //     }
     // }
     const extend = (
-        (depth < DEPTH[0]+boost) or
-        (depth < DEPTH[1]+boost and board.heat >= 1) or
-        (depth < DEPTH[2]+boost and board.heat >= 2) or
-        (depth < DEPTH[3]+boost and board.heat >= 3)
+        (depth < BOT[0]+boost) or
+        (depth < BOT[1]+boost and board.heat >= 1) or
+        (depth < BOT[2]+boost and board.heat >= 2) or
+        (depth < BOT[3]+boost and board.heat >= 3)
     );
     if (!extend) {
         const score = board.get_score();
@@ -218,12 +226,11 @@ fn is_debug_path(
 
 // EASY
 // const DEPTH = .{4, 5, 6, 7};
-// const DEPTH = .{4, 5, 6, 9};  // m1+ c2+      P3 P1
+const BOT_EASY = .{4, 5, 6, 9};  // m1+ c2+      P3 P1
 
 // MID
-const DEPTH = .{4, 6, 6, 10};  // c5+++ c6+=++ c7--- m9++==-  P2 P8
-// const DEPTH = .{4, 5, 7, 9};
-
+// const DEPTH = .{4, 6, 6, 10};  // c5+++ c6+=++ c7--- m9++==-  P2 P8
+const BOT_MID = .{4, 6, 7, 11};
 
 // HARD
 // const DEPTH = .{5, 6, 7, 10};
