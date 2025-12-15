@@ -19,10 +19,33 @@
     background-blend-mode: overlay
 
 .top
-    // flex: 1
     aspect-ratio: 4/1
-    font-size: 2svh
     color: white
+    .bot
+        display: flex
+        height: 80%
+        .face
+            height: 80%
+            margin: 3.5%
+            border: 0.5svh solid white
+            border-radius: 1svh
+            img
+                height: 100%
+                border-radius: 1svh
+        .dialog
+            flex-grow: 1
+            font-size: 1.8svh
+            background-color: hsla(0deg, 0%, 100%, 10%)
+            border-radius: 1.5svh
+            margin: 2svh
+            padding: 2svh
+    .triangle
+        position: absolute
+        left: 15.9svh
+        top: 3.5svh
+        color: hsla(0deg, 0%, 100%, 10%)
+        font-size: 3svh
+
 
 .bottom
     aspect-ratio: 4/1

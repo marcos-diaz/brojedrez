@@ -19,6 +19,9 @@ export class App {
   turn = true
   mode = 'play'
   modeBoard = 'board'
+  bot = 0
+  dialog = signal('')
+  dialogTimer = 0
   times: number[] = []
 
   constructor() {
@@ -57,11 +60,25 @@ export class App {
     this.highlight_dest = this.wasm.get_highlight_dest()
   }
 
-  init() {
+  init(botId: number) {
     this.modeBoard = 'board'
-    this.wasm.init()
+    this.bot = botId
+    this.wasm.init(botId)
     this.wasm.start()
     this.refreshBoard()
+    this.dialogNew()
+  }
+
+  dialogNew() {
+    clearTimeout(this.dialogTimer)
+    const rand = Math.floor(Math.random() * dialogs.length)
+    this.dialog.set(dialogs[rand])
+    this.dialogTimer = setTimeout(() => {
+      this.dialog.set('')
+      this.dialogTimer = setTimeout(() => {
+        this.dialogNew()
+      }, 1000 * 60 * 4);
+    }, 15000);
   }
 
   undo() {
@@ -167,3 +184,36 @@ enum Piece {
 function delay(ms: number): Promise<void> {
   return new Promise(resolve => setTimeout(resolve, ms))
 }
+
+const dialogs = [
+  'I`m not an AI, but I can say stupid shit without wasting a lot of electricity',
+  'In Finland there is no horchata and no croquetas',
+  'Mundo viejuuuuuno',
+  'I hate chess, it benefits defensive play, and games are tooooo long',
+  'I drove a motorbike over 300 km/h',
+  'I used to have ambulance driver license',
+  'Chess is not a measurement of intelligence, is a measurement of how many hours you played chess',
+  'I was expelled from school when I was 15',
+  'I made 3 hobbyist programming languages: dotcy, warp, and arecibo, all of them sucked',
+  'A hammer falls faster than a feather in vacuum, by a few femtoseconds',
+  'You started hallucinating reality this morning, and all your memories are being created when you "remember" them',
+  'The only way to learn orbital mechanics is playing Kerbal Space Program',
+  'I like the engineering of weapons, but holding weapons makes me feel uneasy',
+  'My best rubik cube solve time is 24 seconds',
+  'I have lucid dreams sometimes',
+  'I`m still trying to find the ex-Nokia person that created the snake game',
+  'Health and getting old is overrated',
+  'Doing 1 hour of sports extends your life by 1 hour, so you are just extending the agony',
+  'Si, eran 6 motoristas que eran motos, la policía lo está investigando por los nombres',
+  'Jupiter moons can be seen with any cheap binoculars',
+  'A dog thinks is family, a cat thinks is an unionized pest control employee',
+  'Carmiña vacaloura non son vaca non son loura',
+  'La puerta giratoria siempre gira pero nunca toria',
+  'Venus will be easier to terraform than Mars',
+  'Framerate over resolution, always',
+  'Esta pendiente es un poco... trambólico, hay que saber subir y bajar',
+  'Pájaros del terror, pájaros del terror',
+  'I`m stronger than an ant, if an ant was this big',
+  'If your ball is too big for your mouth, it`s not yours',
+  'If you go to Black Mesa, bring your passport',
+]

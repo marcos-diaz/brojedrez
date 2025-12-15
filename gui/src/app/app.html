@@ -2,8 +2,17 @@
   <div class='ui'>
 
     <div class='top'>
-      Black: Brojedrez engine <br/>
-      White:
+      <div class='bot' *ngIf='bot>0'>
+        <div class='face'>
+          <img *ngIf='bot==1'src='./faces/face1.png'/>
+          <img *ngIf='bot==2'src='./faces/face2.png'/>
+          <img *ngIf='bot==3'src='./faces/face3.png'/>
+        </div>
+        <div class='dialog' *ngIf='dialog() !== "" '>
+          <div class='triangle'>◀</div>
+          {{dialog()}}
+        </div>
+      </div>
     </div>
 
     <div class='board' *ngIf='modeBoard=="board"'>
@@ -21,14 +30,14 @@
         <div>New Game</div>
         <div (click)='modeBoard="board"'>X</div>
       </div>
-      <div class='option' (click)='init()'>
+      <div class='option' (click)='init(1)'>
         <div class='face'><img src='./faces/face1.png'/></div>
         <div class='info'>
           <div class='name'>MarcosBot</div>
           <div class='desc'>I was made to play at the same level than my creator, which is not much</div>
         </div>
       </div>
-      <div class='option' (click)='init()'>
+      <div class='option' (click)='init(2)'>
         <div class='face'><img src='./faces/face2.png'/></div>
         <div class='info'>
           <div class='name'>MarcosBot+</div>
