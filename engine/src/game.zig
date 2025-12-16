@@ -19,9 +19,7 @@ pub const Game = struct {
 
     pub fn init(
         self: *Game,
-        bot_id: i32,
     ) void {
-        self.bot_id = bot_id;
         self.index = 0;
         self.len = 0;
         self.highlight_orig = -1;
@@ -30,8 +28,10 @@ pub const Game = struct {
 
     pub fn start(
         self: *Game,
+        bot_id: i32,
     ) void {
-        self.init(self.bot_id);
+        self.bot_id = bot_id;
+        self.init();
         self.current().*.start();
     }
 

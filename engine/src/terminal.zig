@@ -97,7 +97,7 @@ pub fn indent(
 
 pub fn loop() !void {
     var game = Game{};
-    game.start();
+    game.start(2);
     try clear();
     var has_selected = false;
     var highlight = BoardMask{.mask=0};
@@ -110,7 +110,7 @@ pub fn loop() !void {
         const input_len = try stdin.read(&buffer);
 
         if (std.mem.eql(u8, buffer[0..5], "start")) {
-            game.start();
+            game.start(2);
             has_selected = false;
             highlight = BoardMask{.mask=0};
             try clear();

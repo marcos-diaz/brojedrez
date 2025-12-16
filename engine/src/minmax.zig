@@ -13,7 +13,7 @@ const CacheEntry = @import("cache.zig").CacheEntry;
 const terminal = @import("terminal.zig");
 const random = @import("random.zig");
 
-var BOT = .{0, 0, 0, 0};
+var BOT = [4]u4{0, 0, 0, 0};
 
 pub const Stats = struct {
     total: u32 = 0,

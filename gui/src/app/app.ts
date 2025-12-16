@@ -63,8 +63,8 @@ export class App {
   init(botId: number) {
     this.modeBoard = 'board'
     this.bot = botId
-    this.wasm.init(botId)
-    this.wasm.start()
+    this.wasm.init()
+    this.wasm.start(botId)
     this.refreshBoard()
     this.dialogNew()
   }
