@@ -229,7 +229,7 @@ fn is_debug_path(
 const BOT_EASY = .{4, 5, 6, 9};  // m1+ c2+      P3 P1
 
 // MID
-// const DEPTH = .{4, 6, 6, 10};  // c5+++ c6+=++ c7--- m9++==-  P2 P8
+// const BOT_MID = .{4, 6, 6, 10};  // c5+++ c6+=++ c7--- m9++==-  P2 P8
 const BOT_MID = .{4, 6, 7, 11};
 
 // HARD

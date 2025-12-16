@@ -12,6 +12,11 @@
           <div class='triangle'>‹</div>
           {{dialog()}}
         </div>
+        <div class='dialog' *ngIf='thinking()==true'>
+          <div class='triangle'>‹</div>
+          Thinking...<br/>
+          <img class='spin' src='./spin.png'/>
+        </div>
       </div>
     </div>
 

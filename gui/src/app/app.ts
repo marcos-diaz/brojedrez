@@ -21,8 +21,10 @@ export class App {
   modeBoard = 'board'
   bot = 0
   dialog = signal('')
+  dialogCounter = 0
   dialogTimer = 0
   times: number[] = []
+  thinking = signal(false)
 
   constructor() {
   }
@@ -75,10 +77,20 @@ export class App {
     this.dialog.set(dialogs[rand])
     this.dialogTimer = setTimeout(() => {
       this.dialog.set('')
-      this.dialogTimer = setTimeout(() => {
-        this.dialogNew()
-      }, 1000 * 60 * 4);
     }, 15000);
+  }
+
+  setThinking(state: boolean) {
+    clearTimeout(this.dialogTimer)
+    this.dialog.set('')
+    this.thinking.set(state)
+    if (state==false) {
+      this.dialogCounter += 1
+      if (this.dialogCounter > 6) {
+        this.dialogNew()
+        this.dialogCounter = 0
+      }
+    }
   }
 
   undo() {
@@ -150,13 +162,15 @@ export class App {
         this.selected = undefined
         this.highlight_orig = undefined
         this.refreshBoard()
-        await delay(100)
         console.log('PROCESSING')
+        this.setThinking(true)
+        await delay(100)
         const start = Date.now();
         this.wasm.move_bot()
         const elapsed = (Date.now() - start) / 1000
         this.times.push(elapsed)
         console.log('DONE', elapsed, this.timeAvg(), this.timeP25worst())
+        this.setThinking(false)
         this.refreshBoard()
         this.turn = true
         this.selected = undefined;

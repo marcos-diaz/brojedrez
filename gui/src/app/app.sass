@@ -39,6 +39,10 @@
             border-radius: 1.5svh
             margin: 2svh
             padding: 2svh
+        .spin
+            height: 60%
+            margin-top: 1.4%
+            animation: rotate 1s linear infinite, hue 20s linear infinite
     .triangle
         position: absolute
         left: 16.3svh
@@ -176,3 +180,16 @@
 
 .bottom .mode.categories .text
     color: hsl(0deg, 0%, 0%)
+
+
+@keyframes rotate
+    from
+        transform: rotate(0deg)
+    to
+        transform: rotate(360deg)
+
+@keyframes hue
+    from
+        filter: hue-rotate(160deg)
+    to
+        filter: hue-rotate(520deg)
